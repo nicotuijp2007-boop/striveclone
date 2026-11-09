@@ -1,4 +1,4 @@
-import type { Workout, WorkoutExercise } from "../types";
+import type { ManualPR, Workout, WorkoutExercise } from "../types";
 
 /** Epley estimated one-rep max. */
 export const estimate1RM = (weight: number, reps: number): number =>
@@ -50,29 +50,39 @@ export interface PersonalRecord {
   reps: number;
   est1RM: number;
   date: number;
+  manual?: boolean;
 }
 
-/** Best set (by estimated 1RM) per exercise. */
-export const personalRecords = (workouts: Workout[]): PersonalRecord[] => {
+/** Best set (by estimated 1RM) per exercise, from logged workouts and hand-entered PRs. */
+export const personalRecords = (workouts: Workout[], manual: ManualPR[] = []): PersonalRecord[] => {
   const best = new Map<string, PersonalRecord>();
-  for (const w of workouts) {
-    for (const we of w.exercises) {
-      for (const s of doneSets(we)) {
-        const est = estimate1RM(s.weight, s.reps);
-        const cur = best.get(we.exerciseId);
-        if (!cur || est > cur.est1RM) {
-          best.set(we.exerciseId, {
-            exerciseId: we.exerciseId,
-            weight: s.weight,
-            reps: s.reps,
-            est1RM: Math.round(est * 10) / 10,
-            date: w.startedAt,
-          });
-        }
-      }
+  const consider = (exerciseId: string, weight: number, reps: number, date: number, isManual: boolean) => {
+    const est = estimate1RM(weight, reps);
+    const cur = best.get(exerciseId);
+    if (!cur || est > cur.est1RM) {
+      best.set(exerciseId, { exerciseId, weight, reps, est1RM: Math.round(est * 10) / 10, date, ...(isManual && { manual: true }) });
     }
-  }
+  };
+  for (const w of workouts)
+    for (const we of w.exercises) for (const s of doneSets(we)) consider(we.exerciseId, s.weight, s.reps, w.startedAt, false);
+  for (const m of manual) consider(m.exerciseId, m.weight, m.reps, m.date, true);
   return [...best.values()].sort((a, b) => b.est1RM - a.est1RM);
+};
+
+/** Best estimated 1RM for one exercise across history, hand-entered PRs and extra sets (e.g. the active workout). */
+export const bestEst1RM = (
+  workouts: Workout[],
+  manual: ManualPR[],
+  exerciseId: string,
+  extraSets: { weight: number; reps: number }[] = []
+): number => {
+  let best = 0;
+  for (const w of workouts)
+    for (const we of w.exercises)
+      if (we.exerciseId === exerciseId) for (const s of doneSets(we)) best = Math.max(best, estimate1RM(s.weight, s.reps));
+  for (const m of manual) if (m.exerciseId === exerciseId) best = Math.max(best, estimate1RM(m.weight, m.reps));
+  for (const s of extraSets) best = Math.max(best, estimate1RM(s.weight, s.reps));
+  return best;
 };
 
 const startOfWeek = (t: number): number => {

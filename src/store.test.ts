@@ -38,3 +38,24 @@ describe("reducer", () => {
     expect(s.bodyWeight).toEqual([{ date: "2026-11-01", kg: 81 }, { date: "2026-11-09", kg: 79.5 }]);
   });
 });
+
+describe("tracked PRs", () => {
+  it("tracks a lift once, sets and clears a goal, and untracks", () => {
+    let s = reducer(initialState(), { type: "trackPR", exerciseId: "bench" });
+    s = reducer(s, { type: "trackPR", exerciseId: "bench" });
+    expect(s.trackedPRs).toEqual([{ exerciseId: "bench", goalKg: undefined }]);
+    s = reducer(s, { type: "setPRGoal", exerciseId: "bench", goalKg: 100 });
+    expect(s.trackedPRs[0].goalKg).toBe(100);
+    s = reducer(s, { type: "setPRGoal", exerciseId: "bench", goalKg: 0 });
+    expect(s.trackedPRs[0].goalKg).toBeUndefined();
+    s = reducer(s, { type: "untrackPR", exerciseId: "bench" });
+    expect(s.trackedPRs).toEqual([]);
+  });
+
+  it("adds and deletes hand-entered PRs", () => {
+    let s = reducer(initialState(), { type: "addManualPR", exerciseId: "squat", weight: 140, reps: 3, date: 1 });
+    expect(s.manualPRs).toHaveLength(1);
+    s = reducer(s, { type: "deleteManualPR", id: s.manualPRs[0].id });
+    expect(s.manualPRs).toHaveLength(0);
+  });
+});

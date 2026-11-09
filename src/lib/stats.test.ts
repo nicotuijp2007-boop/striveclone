@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { estimate1RM, exerciseHistory, personalRecords, weekStreak, weeklySummary, workoutVolume } from "./stats";
+import { bestEst1RM, estimate1RM, exerciseHistory, personalRecords, weekStreak, weeklySummary, workoutVolume } from "./stats";
 import type { Workout } from "../types";
 
 const day = 864e5;
@@ -40,5 +40,21 @@ describe("stats", () => {
     const weeks = weeklySummary(ws, 4, now);
     expect(weeks.map((w) => w.workouts)).toEqual([1, 0, 1, 1]);
     expect(weekStreak(ws, now)).toBe(2);
+  });
+});
+
+describe("records with hand-entered PRs", () => {
+  it("lets a hand-entered PR beat logged sets and marks it", () => {
+    const manual = [{ id: "m", exerciseId: "bench", weight: 112.5, reps: 1, date: 5 }];
+    const [pr] = personalRecords([mk(0, "bench", [[100, 3]])], manual);
+    expect(pr).toMatchObject({ weight: 112.5, reps: 1, manual: true });
+  });
+
+  it("computes best estimated 1RM across history, manual and extra sets", () => {
+    const ws = [mk(0, "bench", [[100, 1]])];
+    expect(bestEst1RM(ws, [], "bench")).toBe(100);
+    expect(bestEst1RM(ws, [{ id: "m", exerciseId: "bench", weight: 105, reps: 1, date: 0 }], "bench")).toBe(105);
+    expect(bestEst1RM(ws, [], "bench", [{ weight: 107.5, reps: 1 }])).toBe(107.5);
+    expect(bestEst1RM(ws, [], "squat")).toBe(0);
   });
 });

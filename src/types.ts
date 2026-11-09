@@ -48,6 +48,21 @@ export interface BodyWeightEntry {
   kg: number;
 }
 
+/** A lift the user explicitly wants to follow, with an optional goal (estimated 1RM, kg). */
+export interface TrackedPR {
+  exerciseId: string;
+  goalKg?: number;
+}
+
+/** A best set entered by hand, e.g. one lifted before using the app. */
+export interface ManualPR {
+  id: string;
+  exerciseId: string;
+  weight: number;
+  reps: number;
+  date: number;
+}
+
 export interface Settings {
   restSeconds: number;
   autoRest: boolean;
@@ -60,5 +75,7 @@ export interface AppState {
   workouts: Workout[]; // finished workouts, newest first
   active: Workout | null;
   bodyWeight: BodyWeightEntry[]; // sorted by date ascending
+  trackedPRs: TrackedPR[];
+  manualPRs: ManualPR[];
   settings: Settings;
 }

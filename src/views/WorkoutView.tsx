@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useApp, useNow } from "../context";
 import { ExercisePicker } from "../components/ExercisePicker";
 import { NumberField } from "../components/NumberField";
-import { completedSetCount, formatKg, weekStreak, workoutVolume } from "../lib/stats";
+import { bestEst1RM, completedSetCount, estimate1RM, formatKg, weekStreak, workoutVolume } from "../lib/stats";
 import { formatClock } from "../lib/audio";
 
 export function WorkoutView({ goTo }: { goTo: (tab: "routines") => void }) {
@@ -61,6 +61,27 @@ function ActiveWorkout() {
   const w = state.active!;
   const now = useNow(true, 1000);
   const [picking, setPicking] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3500);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  /** Celebrate when a ticked set beats the best ever on a tracked lift. */
+  const checkPR = (exerciseId: string, setId: string, weight: number, reps: number) => {
+    if (!state.trackedPRs.some((t) => t.exerciseId === exerciseId) || weight <= 0) return;
+    const otherDone = w.exercises
+      .filter((we) => we.exerciseId === exerciseId)
+      .flatMap((we) => we.sets)
+      .filter((s) => s.done && s.id !== setId);
+    const prev = bestEst1RM(state.workouts, state.manualPRs, exerciseId, otherDone);
+    const est = estimate1RM(weight, reps);
+    if (prev > 0 && est > prev) {
+      setToast(`🏆 New ${exerciseById(exerciseId)?.name ?? ""} PR! ${weight} kg × ${reps} (≈ ${Math.round(est * 10) / 10} kg 1RM)`);
+    }
+  };
 
   const finish = () => {
     if (completedSetCount(w) === 0 && !confirm("No sets are ticked off, so nothing will be saved. Finish anyway?")) return;
@@ -105,7 +126,10 @@ function ActiveWorkout() {
                     aria-pressed={s.done}
                     onClick={() => {
                       dispatch({ type: "updateSet", workoutExerciseId: we.id, setId: s.id, patch: { done: !s.done } });
-                      if (!s.done && state.settings.autoRest) rest.start(state.settings.restSeconds);
+                      if (!s.done) {
+                        checkPR(we.exerciseId, s.id, s.weight, s.reps);
+                        if (state.settings.autoRest) rest.start(state.settings.restSeconds);
+                      }
                     }}
                   >✓</button>
                   <button className="x" aria-label="Delete set"
@@ -126,6 +150,8 @@ function ActiveWorkout() {
         }}>Discard</button>
         <button className="btn primary grow" onClick={finish}>Finish workout</button>
       </div>
+
+      {toast && <div className="toast" role="status" onClick={() => setToast(null)}>{toast}</div>}
 
       {picking && (
         <ExercisePicker

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useApp } from "../context";
 import { NumberField } from "../components/NumberField";
+import { TrackedPRs } from "../components/TrackedPRs";
 import { exerciseHistory, personalRecords, weeklySummary } from "../lib/stats";
 
 const ACCENT = "var(--accent)";
@@ -19,7 +20,8 @@ export function ProgressView() {
 
   const history = useMemo(() => exerciseHistory(state.workouts, selected), [state.workouts, selected]);
   const weekly = useMemo(() => weeklySummary(state.workouts, 8), [state.workouts]);
-  const prs = useMemo(() => personalRecords(state.workouts), [state.workouts]);
+  const prs = useMemo(() => personalRecords(state.workouts, state.manualPRs), [state.workouts, state.manualPRs]);
+  const tracked = new Set(state.trackedPRs.map((t) => t.exerciseId));
 
   const today = new Date().toISOString().slice(0, 10);
   const latestBw = state.bodyWeight[state.bodyWeight.length - 1]?.kg ?? 70;
@@ -28,6 +30,8 @@ export function ProgressView() {
   return (
     <section className="stack">
       <h2>Progress</h2>
+
+      <TrackedPRs />
 
       <div className="card">
         <h3>Workouts per week</h3>
@@ -68,12 +72,20 @@ export function ProgressView() {
       </div>
 
       <div className="card">
-        <h3>Personal records</h3>
+        <h3>All records</h3>
         {prs.length === 0 ? <p className="muted">Finish a workout to set your first records.</p> : (
           <ul className="plain">
             {prs.map((pr) => (
               <li key={pr.exerciseId} className="split">
-                <span>{exerciseById(pr.exerciseId)?.name ?? "?"}</span>
+                <span className="row tight">
+                  <button
+                    className={`star ${tracked.has(pr.exerciseId) ? "on" : ""}`}
+                    aria-label={tracked.has(pr.exerciseId) ? "Stop tracking" : "Track this PR"}
+                    aria-pressed={tracked.has(pr.exerciseId)}
+                    onClick={() => dispatch({ type: tracked.has(pr.exerciseId) ? "untrackPR" : "trackPR", exerciseId: pr.exerciseId })}
+                  >{tracked.has(pr.exerciseId) ? "★" : "☆"}</button>
+                  {exerciseById(pr.exerciseId)?.name ?? "?"}
+                </span>
                 <span><strong>{pr.weight} kg × {pr.reps}</strong> <span className="muted small">≈ {pr.est1RM} 1RM</span></span>
               </li>
             ))}

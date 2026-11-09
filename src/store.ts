@@ -11,6 +11,8 @@ export const initialState = (): AppState => ({
   workouts: [],
   active: null,
   bodyWeight: [],
+  trackedPRs: [],
+  manualPRs: [],
   settings: { restSeconds: 90, autoRest: true },
 });
 
@@ -50,6 +52,11 @@ export type Action =
   | { type: "addExercise"; exercise: Omit<Exercise, "id" | "custom"> }
   | { type: "logBodyWeight"; date: string; kg: number }
   | { type: "deleteBodyWeight"; date: string }
+  | { type: "trackPR"; exerciseId: string; goalKg?: number }
+  | { type: "untrackPR"; exerciseId: string }
+  | { type: "setPRGoal"; exerciseId: string; goalKg?: number }
+  | { type: "addManualPR"; exerciseId: string; weight: number; reps: number; date: number }
+  | { type: "deleteManualPR"; id: string }
   | { type: "updateSettings"; patch: Partial<Settings> }
   | { type: "importState"; state: AppState };
 
@@ -173,6 +180,28 @@ export function reducer(state: AppState, action: Action): AppState {
     }
     case "deleteBodyWeight":
       return { ...state, bodyWeight: state.bodyWeight.filter((b) => b.date !== action.date) };
+    case "trackPR":
+      if (state.trackedPRs.some((t) => t.exerciseId === action.exerciseId)) return state;
+      return { ...state, trackedPRs: [...state.trackedPRs, { exerciseId: action.exerciseId, goalKg: action.goalKg }] };
+    case "untrackPR":
+      return { ...state, trackedPRs: state.trackedPRs.filter((t) => t.exerciseId !== action.exerciseId) };
+    case "setPRGoal":
+      return {
+        ...state,
+        trackedPRs: state.trackedPRs.map((t) =>
+          t.exerciseId === action.exerciseId ? { ...t, goalKg: action.goalKg && action.goalKg > 0 ? action.goalKg : undefined } : t
+        ),
+      };
+    case "addManualPR":
+      return {
+        ...state,
+        manualPRs: [
+          ...state.manualPRs,
+          { id: uid(), exerciseId: action.exerciseId, weight: action.weight, reps: action.reps, date: action.date },
+        ],
+      };
+    case "deleteManualPR":
+      return { ...state, manualPRs: state.manualPRs.filter((m) => m.id !== action.id) };
     case "updateSettings":
       return { ...state, settings: { ...state.settings, ...action.patch } };
     case "importState":
