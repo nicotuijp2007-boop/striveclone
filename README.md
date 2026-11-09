@@ -29,6 +29,14 @@ How it works:
 - The workout in progress isn't synced; it stays on its device until finished.
 - Signing out uploads pending changes, then clears the data from that device.
 
+## Deploying (Netlify)
+
+`netlify.toml` holds the build command, Node version, Supabase settings and cache headers, so nothing needs configuring in the Netlify UI.
+
+1. In Netlify: **Add new site → Import an existing project → GitHub**, and pick this repository.
+2. Choose the branch to deploy (production deploys follow it on every push). Leave the build settings as detected.
+3. After the first deploy, set the site's URL as **Site URL** in Supabase under Authentication → URL Configuration, so any emails Supabase sends link to the app.
+
 ## Development
 
 ```bash
