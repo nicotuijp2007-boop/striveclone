@@ -14,7 +14,7 @@ A mobile-first fitness tracker built as an installable web app (PWA). Data is al
 
 ## Cloud sync (Supabase)
 
-Sync is optional. Without the settings below, the app runs local-only and hides nothing except the sign-in.
+Sync is optional. Without the settings below, the app runs local-only and the account screen says so.
 
 1. Create a project at [supabase.com](https://supabase.com).
 2. In the dashboard's **SQL Editor**, run [`supabase/migrations/20261109000000_user_data.sql`](supabase/migrations/20261109000000_user_data.sql). It creates the `user_data` table with row-level security, so each user can only read and write their own row.
