@@ -158,37 +158,25 @@ main { padding: 4px 16px 24px; }
   background: var(--accent); color: var(--accent-ink); box-shadow: 0 8px 30px rgb(0 0 0 / .35); animation: pop .25s ease-out; }
 @keyframes pop { from { transform: translate(-50%, -12px); opacity: 0; } }
 
-/* Activity calendars */
-.lvl-0 { background: var(--surface-2); }
-.lvl-1 { background: color-mix(in srgb, var(--accent) 30%, var(--surface-2)); }
-.lvl-2 { background: color-mix(in srgb, var(--accent) 55%, var(--surface-2)); }
-.lvl-3 { background: color-mix(in srgb, var(--accent) 80%, var(--surface-2)); }
-.lvl-4 { background: var(--accent); }
-.fg { color: var(--text); }
-.cal-legend { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
-.cal-legend i { width: 11px; height: 11px; border-radius: 3px; }
-
-.cal-month { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-.cal-wd { text-align: center; font-size: .72rem; color: var(--muted); font-weight: 600; }
-.cal-day { aspect-ratio: 1; display: grid; place-items: center; border-radius: 9px; background: var(--surface-2);
-  font-size: .85rem; font-variant-numeric: tabular-nums; color: var(--muted); }
-.cal-day.on { background: var(--accent); color: var(--accent-ink); font-weight: 800; }
-.cal-day.today { box-shadow: inset 0 0 0 2px var(--text); }
-.cal-day.future { opacity: .4; }
-
+/* Activity: heatmap + this-week checks */
+.dash-block { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.dash-block figcaption { text-align: center; font-size: .82rem; color: var(--muted); }
+.dash-block figcaption strong { color: var(--text); }
+.heat-card { padding: 12px; }
 .heat-svg { width: 100%; height: auto; display: block; }
-.heat-label { font-size: 8px; fill: var(--muted); }
 rect.lvl-0 { fill: var(--surface-2); }
-rect.lvl-1 { fill: color-mix(in srgb, var(--accent) 30%, var(--surface-2)); }
-rect.lvl-2 { fill: color-mix(in srgb, var(--accent) 55%, var(--surface-2)); }
+rect.lvl-1 { fill: color-mix(in srgb, var(--accent) 35%, var(--surface-2)); }
+rect.lvl-2 { fill: color-mix(in srgb, var(--accent) 58%, var(--surface-2)); }
 rect.lvl-3 { fill: color-mix(in srgb, var(--accent) 80%, var(--surface-2)); }
 rect.lvl-4 { fill: var(--accent); }
+rect.today { stroke: var(--text); stroke-width: 1.5; }
 
-.strips { display: flex; flex-direction: column; gap: 8px; }
-.strip { display: grid; grid-template-columns: 32px 1fr 22px; gap: 8px; align-items: center; }
-.strip-label { font-size: .78rem; color: var(--muted); font-weight: 600; }
-.strip-count { text-align: right; font-size: .85rem; font-variant-numeric: tabular-nums; }
-.strip-cells { display: grid; grid-template-columns: repeat(31, 1fr); gap: 2px; }
-.strip-cell { aspect-ratio: 1 / 1.6; border-radius: 2px; }
-.strip-cell.blank { background: transparent; }
-.strip-cell.future { background: var(--surface-2); opacity: .35; }
+.week-checks { flex-direction: row; justify-content: space-between; padding: 14px 10px; gap: 0; }
+.wk-day { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.wk-label { font-size: .85rem; color: var(--text); }
+.wk-day.is-today .wk-label { color: var(--accent); font-weight: 700; }
+.wk-icon { position: relative; display: grid; color: var(--border); }
+.wk-day.missed .wk-icon { color: color-mix(in srgb, var(--muted) 55%, transparent); }
+.wk-day.done .wk-icon { color: var(--accent); }
+.wk-count { position: absolute; right: -14px; bottom: -8px; font-size: .78rem; font-weight: 800; color: var(--accent); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

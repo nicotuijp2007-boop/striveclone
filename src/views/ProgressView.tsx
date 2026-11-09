@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
-import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useApp } from "../context";
 import { NumberField } from "../components/NumberField";
 import { TrackedPRs } from "../components/TrackedPRs";
-import { exerciseHistory, personalRecords, weeklySummary } from "../lib/stats";
+import { exerciseHistory, personalRecords } from "../lib/stats";
+import { TrainingHeatmap, WeekChecks } from "../components/ActivityCalendar";
 
 const ACCENT = "var(--accent)";
 const shortDate = (t: number) => new Date(t).toLocaleDateString(undefined, { day: "numeric", month: "short" });
@@ -19,7 +20,6 @@ export function ProgressView() {
   const selected = exerciseId || used[0]?.id || "";
 
   const history = useMemo(() => exerciseHistory(state.workouts, selected), [state.workouts, selected]);
-  const weekly = useMemo(() => weeklySummary(state.workouts, 8), [state.workouts]);
   const prs = useMemo(() => personalRecords(state.workouts, state.manualPRs), [state.workouts, state.manualPRs]);
   const tracked = new Set(state.trackedPRs.map((t) => t.exerciseId));
 
@@ -31,20 +31,11 @@ export function ProgressView() {
     <section className="stack">
       <h2>Progress</h2>
 
-      <TrackedPRs />
 
-      <div className="card">
-        <h3>Workouts per week</h3>
-        <ResponsiveContainer width="100%" height={160}>
-          <BarChart data={weekly.map((w) => ({ ...w, label: shortDate(w.week) }))}>
-            <CartesianGrid vertical={false} stroke="var(--border)" />
-            <XAxis dataKey="label" tick={{ fill: "var(--muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis allowDecimals={false} width={24} tick={{ fill: "var(--muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
-            <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "var(--surface-2)" }} />
-            <Bar dataKey="workouts" name="Workouts" fill={ACCENT} radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      <TrainingHeatmap workouts={state.workouts} />
+      <WeekChecks workouts={state.workouts} />
+
+      <TrackedPRs />
 
       <div className="card">
         <div className="section-head">
