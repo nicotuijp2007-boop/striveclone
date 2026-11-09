@@ -34,7 +34,8 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   padding: calc(12px + env(safe-area-inset-top)) 16px 12px; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); }
 .brand { font-weight: 800; letter-spacing: -.02em; font-size: 1.2rem; }
 .pill { border: 0; background: var(--accent); color: var(--accent-ink); border-radius: 999px; padding: 4px 12px; font-size: .8rem; font-weight: 600; }
-main { padding: 4px 16px 24px; }
+/* Bottom room so the floating rest bar never covers the last buttons. */
+main { padding: 4px 16px 88px; }
 
 .stack { display: flex; flex-direction: column; gap: 14px; }
 .row { display: flex; gap: 8px; align-items: center; }
@@ -180,3 +181,16 @@ rect.today { stroke: var(--text); stroke-width: 1.5; }
 .wk-day.done .wk-icon { color: var(--accent); }
 .wk-count { position: absolute; right: -14px; bottom: -8px; font-size: .78rem; font-weight: 800; color: var(--accent); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Account & sync */
+.top .pill { margin-left: auto; margin-right: 8px; }
+.sync-btn { position: relative; border: 0; background: none; color: var(--muted); padding: 6px; border-radius: 10px; display: grid; }
+.sync-btn:hover { background: var(--surface-2); }
+.sync-btn.st-synced { color: var(--accent); }
+.sync-btn.st-error, .sync-btn.st-offline { color: var(--danger); }
+.sync-dot { position: absolute; top: 6px; right: 5px; width: 7px; height: 7px; border-radius: 50%; background: var(--rest); animation: blink 1s infinite; }
+@keyframes blink { 50% { opacity: .2; } }
+.sync-line { font-size: .88rem; }
+.sync-line.st-synced { color: var(--accent); }
+.sync-line.st-error, .sync-line.st-offline { color: var(--danger); }
+.error-text { color: var(--danger); margin: 0; }

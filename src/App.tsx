@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState } from "react";
 import { useApp } from "./context";
 import { RestBar } from "./components/RestBar";
+import { AccountSheet, SyncButton } from "./components/AccountSheet";
 import { WorkoutView } from "./views/WorkoutView";
 import { RoutinesView } from "./views/RoutinesView";
 import { HistoryView } from "./views/HistoryView";
@@ -22,6 +23,7 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
 export default function App() {
   const { state } = useApp();
   const [tab, setTab] = useState<Tab>("workout");
+  const [account, setAccount] = useState(false);
 
   return (
     <div className="app">
@@ -30,6 +32,7 @@ export default function App() {
         {state.active && tab !== "workout" && (
           <button className="pill" onClick={() => setTab("workout")}>● Workout in progress</button>
         )}
+        <SyncButton onClick={() => setAccount(true)} />
       </header>
       <main>
         {tab === "workout" && <WorkoutView goTo={setTab} />}
@@ -43,6 +46,7 @@ export default function App() {
         {tab === "timer" && <TimerView />}
       </main>
       <RestBar />
+      {account && <AccountSheet onClose={() => setAccount(false)} />}
       <nav className="tabs">
         {TABS.map((t) => (
           <button key={t.id} className={tab === t.id ? "on" : ""} onClick={() => setTab(t.id)} aria-current={tab === t.id ? "page" : undefined}>

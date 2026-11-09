@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from "react";
 import type { AppState, Exercise } from "./types";
 import { loadState, reducer, saveState, type Action } from "./store";
+import { useCloudSync, type CloudSync } from "./sync/useCloudSync";
 
 interface RestTimer {
   endsAt: number | null;
@@ -15,6 +16,7 @@ interface Ctx {
   dispatch: (a: Action) => void;
   exerciseById: (id: string) => Exercise | undefined;
   rest: RestTimer;
+  cloud: CloudSync;
 }
 
 const AppContext = createContext<Ctx | null>(null);
@@ -25,6 +27,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [total, setTotal] = useState(0);
 
   useEffect(() => saveState(state), [state]);
+  const cloud = useCloudSync(state, dispatch);
 
   const exerciseMap = useMemo(() => new Map(state.exercises.map((e) => [e.id, e])), [state.exercises]);
   const exerciseById = useCallback((id: string) => exerciseMap.get(id), [exerciseMap]);
@@ -46,7 +49,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [endsAt, total]
   );
 
-  const value = useMemo(() => ({ state, dispatch, exerciseById, rest }), [state, exerciseById, rest]);
+  const value = useMemo(() => ({ state, dispatch, exerciseById, rest, cloud }), [state, exerciseById, rest, cloud]);
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 

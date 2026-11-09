@@ -78,4 +78,6 @@ export interface AppState {
   trackedPRs: TrackedPR[];
   manualPRs: ManualPR[];
   settings: Settings;
+  /** Deletion markers ("workout:<id>", "bw:<date>", ...) → time deleted, so sync doesn't bring deleted items back. */
+  deleted: Record<string, number>;
 }

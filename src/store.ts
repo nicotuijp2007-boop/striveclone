@@ -1,6 +1,7 @@
 import type { AppState, Exercise, Routine, SetEntry, Settings, Workout } from "./types";
 import { DEFAULT_EXERCISES, DEFAULT_ROUTINES } from "./lib/exercises";
 import { uid } from "./lib/id";
+import { mergeStates, tombstone, untombstone, type SyncedData } from "./sync/merge";
 
 export const STORAGE_KEY = "liftlog:v1";
 
@@ -13,6 +14,7 @@ export const initialState = (): AppState => ({
   bodyWeight: [],
   trackedPRs: [],
   manualPRs: [],
+  deleted: {},
   settings: { restSeconds: 90, autoRest: true },
 });
 
@@ -58,7 +60,11 @@ export type Action =
   | { type: "addManualPR"; exerciseId: string; weight: number; reps: number; date: number }
   | { type: "deleteManualPR"; id: string }
   | { type: "updateSettings"; patch: Partial<Settings> }
-  | { type: "importState"; state: AppState };
+  | { type: "importState"; state: AppState }
+  /** Combine data pulled from the cloud into the current state. */
+  | { type: "mergeRemote"; remote: Partial<SyncedData> }
+  /** Wipe local data, e.g. after signing out. */
+  | { type: "reset" };
 
 const newSet = (reps: number, weight: number): SetEntry => ({ id: uid(), reps, weight, done: false });
 
@@ -83,6 +89,15 @@ const mapExercise = (
     ...w,
     exercises: w.exercises.map((we) => (we.id === workoutExerciseId ? { ...we, sets: fn(we.sets) } : we)),
   }));
+
+/** Every deletable item's key, as used in `deleted`. */
+const itemKeys = (s: AppState): string[] => [
+  ...s.workouts.map((w) => `workout:${w.id}`),
+  ...s.routines.map((r) => `routine:${r.id}`),
+  ...s.manualPRs.map((m) => `manualPR:${m.id}`),
+  ...s.trackedPRs.map((t) => `tracked:${t.exerciseId}`),
+  ...s.bodyWeight.map((b) => `bw:${b.date}`),
+];
 
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -141,7 +156,7 @@ export function reducer(state: AppState, action: Action): AppState {
     case "discardWorkout":
       return { ...state, active: null };
     case "deleteWorkout":
-      return { ...state, workouts: state.workouts.filter((w) => w.id !== action.id) };
+      return tombstone({ ...state, workouts: state.workouts.filter((w) => w.id !== action.id) }, `workout:${action.id}`);
     case "saveRoutine": {
       const exists = state.routines.some((r) => r.id === action.routine.id);
       return {
@@ -152,7 +167,7 @@ export function reducer(state: AppState, action: Action): AppState {
       };
     }
     case "deleteRoutine":
-      return { ...state, routines: state.routines.filter((r) => r.id !== action.id) };
+      return tombstone({ ...state, routines: state.routines.filter((r) => r.id !== action.id) }, `routine:${action.id}`);
     case "saveWorkoutAsRoutine": {
       const w = state.workouts.find((x) => x.id === action.workoutId);
       if (!w) return state;
@@ -174,17 +189,23 @@ export function reducer(state: AppState, action: Action): AppState {
     case "logBodyWeight": {
       const rest = state.bodyWeight.filter((b) => b.date !== action.date);
       return {
-        ...state,
+        ...untombstone(state, `bw:${action.date}`),
         bodyWeight: [...rest, { date: action.date, kg: action.kg }].sort((a, b) => a.date.localeCompare(b.date)),
       };
     }
     case "deleteBodyWeight":
-      return { ...state, bodyWeight: state.bodyWeight.filter((b) => b.date !== action.date) };
+      return tombstone({ ...state, bodyWeight: state.bodyWeight.filter((b) => b.date !== action.date) }, `bw:${action.date}`);
     case "trackPR":
       if (state.trackedPRs.some((t) => t.exerciseId === action.exerciseId)) return state;
-      return { ...state, trackedPRs: [...state.trackedPRs, { exerciseId: action.exerciseId, goalKg: action.goalKg }] };
+      return {
+        ...untombstone(state, `tracked:${action.exerciseId}`),
+        trackedPRs: [...state.trackedPRs, { exerciseId: action.exerciseId, goalKg: action.goalKg }],
+      };
     case "untrackPR":
-      return { ...state, trackedPRs: state.trackedPRs.filter((t) => t.exerciseId !== action.exerciseId) };
+      return tombstone(
+        { ...state, trackedPRs: state.trackedPRs.filter((t) => t.exerciseId !== action.exerciseId) },
+        `tracked:${action.exerciseId}`
+      );
     case "setPRGoal":
       return {
         ...state,
@@ -201,10 +222,20 @@ export function reducer(state: AppState, action: Action): AppState {
         ],
       };
     case "deleteManualPR":
-      return { ...state, manualPRs: state.manualPRs.filter((m) => m.id !== action.id) };
+      return tombstone({ ...state, manualPRs: state.manualPRs.filter((m) => m.id !== action.id) }, `manualPR:${action.id}`);
     case "updateSettings":
       return { ...state, settings: { ...state.settings, ...action.patch } };
-    case "importState":
-      return { ...initialState(), ...action.state };
+    case "importState": {
+      // Mark everything not in the backup as deleted, so a signed-in sync doesn't merge it back.
+      const next: AppState = { ...initialState(), ...action.state, active: state.active };
+      const keep = new Set(itemKeys(next));
+      const deleted = { ...next.deleted };
+      for (const k of itemKeys(state)) if (!keep.has(k)) deleted[k] = Date.now();
+      return { ...next, deleted };
+    }
+    case "mergeRemote":
+      return mergeStates(state, action.remote);
+    case "reset":
+      return initialState();
   }
 }

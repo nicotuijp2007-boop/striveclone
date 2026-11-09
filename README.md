@@ -1,6 +1,6 @@
 # Liftlog
 
-A mobile-first fitness tracker built as an installable web app (PWA). All data is stored on the device in `localStorage`. There is no account or server.
+A mobile-first fitness tracker built as an installable web app (PWA). Data is always saved on the device first, so the app works offline. With Supabase configured, signing in also backs it up and syncs it across devices.
 
 ## Features
 
@@ -11,6 +11,23 @@ A mobile-first fitness tracker built as an installable web app (PWA). All data i
 - **Timers**: a rest timer that starts automatically when you tick off a set and stays visible on every tab, plus an interval timer with Tabata, HIIT and EMOM presets. Both beep and vibrate.
 - **History**: past workouts with duration and volume, plus JSON export and import for backups.
 - Works offline once loaded, and can be installed to the home screen.
+
+## Cloud sync (Supabase)
+
+Sync is optional. Without the settings below, the app runs local-only and hides nothing except the sign-in.
+
+1. Create a project at [supabase.com](https://supabase.com).
+2. In the dashboard's **SQL Editor**, run [`supabase/migrations/20261109000000_user_data.sql`](supabase/migrations/20261109000000_user_data.sql). It creates the `user_data` table with row-level security, so each user can only read and write their own row.
+3. Copy `.env.example` to `.env.local` and fill in the **Project URL** and **anon public key** from Project Settings → API. The anon key is safe to ship in the app; row-level security is what protects the data.
+4. Optional: under Authentication → Sign In / Providers → Email, turn off **Confirm email** if you don't want new accounts to confirm by email first.
+
+How it works:
+
+- Everything is still saved to `localStorage` immediately. When signed in, changes upload about 1.5 s later, and the app pulls when opened, when it returns to the foreground, when it comes back online, and every minute while open.
+- Each user has one row: their data as JSON plus a revision number. A device only writes if it has seen the latest revision; otherwise it downloads, merges, and retries.
+- Merging combines lists by id, so workouts logged offline on two devices are both kept. Deletions are remembered (`state.deleted`), so a deleted workout doesn't come back from another device.
+- The workout in progress isn't synced; it stays on its device until finished.
+- Signing out uploads pending changes, then clears the data from that device.
 
 ## Development
 
@@ -27,9 +44,11 @@ npm run build      # typecheck + production build in dist/
 src/
   types.ts          data model
   store.ts          reducer + localStorage persistence (pure, unit-tested)
+  sync/             Supabase client, sync engine, merge logic (unit-tested with a fake cloud)
   context.tsx       React provider, rest-timer state
   lib/              stats, interval-timer maths, audio, default exercises
   components/       exercise picker, rest bar, numeric input
   views/            Workout, Routines, History, Progress, Timers
 public/             manifest, service worker, icon
+supabase/           database migration
 ```
