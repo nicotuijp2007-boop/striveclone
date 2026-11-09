@@ -125,3 +125,36 @@ export const weekStreak = (workouts: Workout[], now = Date.now()): number => {
 
 export const formatKg = (n: number): string =>
   n >= 10000 ? `${(n / 1000).toFixed(1)}t` : `${Math.round(n * 10) / 10} kg`;
+
+/** Local-date key, YYYY-MM-DD. */
+export const dayKey = (t: number | Date): string => {
+  const d = new Date(t);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+export interface DayActivity {
+  workouts: number;
+  volume: number;
+  names: string[];
+}
+
+/** Workouts and volume per local calendar day. */
+export const dailyActivity = (workouts: Workout[]): Map<string, DayActivity> => {
+  const map = new Map<string, DayActivity>();
+  for (const w of workouts) {
+    const k = dayKey(w.startedAt);
+    const cur = map.get(k) ?? { workouts: 0, volume: 0, names: [] };
+    cur.workouts += 1;
+    cur.volume += workoutVolume(w);
+    cur.names.push(w.name);
+    map.set(k, cur);
+  }
+  return map;
+};
+
+/** Intensity 0–4 for a day's volume, relative to the busiest day in the data. */
+export const intensityLevel = (volume: number, maxVolume: number, trained: boolean): number => {
+  if (!trained) return 0;
+  if (maxVolume <= 0) return 2;
+  return Math.min(4, Math.max(1, Math.ceil((volume / maxVolume) * 4)));
+};
