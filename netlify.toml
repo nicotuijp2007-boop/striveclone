@@ -1,0 +1,37 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+  # Supabase project for cloud sync. The publishable key is meant to ship in the app;
+  # row-level security on the user_data table is what protects each user's data.
+  VITE_SUPABASE_URL = "https://xwcehbqagvybvvpctdmu.supabase.co"
+  VITE_SUPABASE_ANON_KEY = "sb_publishable_zBs5JJgytby80XZU9L-u1g_wTxtWWNm"
+
+# The app has no URL routes, but send any unknown path to it rather than a 404.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Always revalidate the page, service worker and manifest so phones get updates promptly.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "no-cache"
+    Content-Type = "application/manifest+json"
+
+# Built files have content hashes in their names, so they can be cached forever.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
