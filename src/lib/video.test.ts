@@ -11,6 +11,8 @@ describe("parseYouTube", () => {
     ["https://www.youtube.com/watch?v=gRVjAtPip0Y&t=1m30s", { id: "gRVjAtPip0Y", start: 90 }],
     ["youtube.com/shorts/8fXfwG4ftaQ", { id: "8fXfwG4ftaQ" }],
     ["https://www.youtube-nocookie.com/embed/gRVjAtPip0Y?start=10", { id: "gRVjAtPip0Y", start: 10 }],
+    ["https://www.youtube.com/embed/gRVjAtPip0Y?start=10&end=40", { id: "gRVjAtPip0Y", start: 10, end: 40 }],
+    ["https://www.youtube.com/embed/gRVjAtPip0Y?start=40&end=10", { id: "gRVjAtPip0Y", start: 40 }],
     ["gRVjAtPip0Y", { id: "gRVjAtPip0Y" }],
   ])("reads %s", (input, expected) => expect(parseYouTube(input)).toEqual(expected));
 
@@ -44,7 +46,13 @@ describe("form video choice", () => {
     expect(videoFor(mergeStates(laptop, phone), "bench").source).toBe("none");
   });
 
-  it("embeds without YouTube cookies and starts at the chosen second", () => {
+  it("embeds without YouTube cookies, starting and stopping at the chosen seconds", () => {
     expect(embedUrl({ id: "gRVjAtPip0Y", start: 30 })).toBe("https://www.youtube-nocookie.com/embed/gRVjAtPip0Y?rel=0&playsinline=1&start=30");
+    expect(embedUrl({ id: "gRVjAtPip0Y", start: 30, end: 60 })).toBe("https://www.youtube-nocookie.com/embed/gRVjAtPip0Y?rel=0&playsinline=1&start=30&end=60");
+  });
+
+  it("gives every default with an end time an end after its start", () => {
+    for (const [key, v] of Object.entries(DEFAULT_VIDEOS)) if (v.end) expect(v.end, key).toBeGreaterThan(v.start ?? 0);
+    expect(videoFor(initialState(), "pushup").video).toMatchObject({ start: 352, end: 390 });
   });
 });

@@ -7,44 +7,45 @@ export interface DefaultVideo extends VideoRef {
 
 /**
  * Form videos for the built-in exercises. Each was checked with YouTube's oEmbed endpoint to exist,
- * allow embedding, and come from the channel listed; start times come from the videos' own chapters.
+ * allow embedding, and come from the channel listed; start and end times come from the videos' own chapters
+ * (the end is where the next exercise or topic begins).
  * Users can swap any of them in the app.
  */
 export const DEFAULT_VIDEOS: Record<string, DefaultVideo> = {
   // Jeff Nippard, starting at the chapter where the exercise's technique is explained.
   bench: { id: "vcBig73ojpE", start: 103, channel: "Jeff Nippard" }, // 1:43 Setup
-  "incline-bench": { id: "fGm-ef-4PVk", start: 153, channel: "Jeff Nippard" }, // 2:33 Incline Bench Press
-  "incline-db": { id: "fGm-ef-4PVk", start: 256, channel: "Jeff Nippard" }, // 4:16 Incline Dumbbell Press
-  pushup: { id: "fGm-ef-4PVk", start: 352, channel: "Jeff Nippard" }, // 5:52 Push-Ups
-  "weighted-dips": { id: "yN6Q1UI_xkE", start: 161, channel: "Jeff Nippard" }, // 2:41 Proper dip execution
-  deadlift: { id: "VL5Ab0T07e4", start: 133, channel: "Jeff Nippard" }, // 2:13 Equipment and setup
-  row: { id: "axoeDmW0oAY", start: 107, channel: "Jeff Nippard" }, // 1:47 Setup and standards
+  "incline-bench": { id: "fGm-ef-4PVk", start: 153, end: 176, channel: "Jeff Nippard" }, // 2:33 Incline Bench Press
+  "incline-db": { id: "fGm-ef-4PVk", start: 256, end: 265, channel: "Jeff Nippard" }, // 4:16 Incline Dumbbell Press
+  pushup: { id: "fGm-ef-4PVk", start: 352, end: 390, channel: "Jeff Nippard" }, // 5:52 Push-Ups
+  "weighted-dips": { id: "yN6Q1UI_xkE", start: 161, end: 376, channel: "Jeff Nippard" }, // 2:41 Proper dip execution
+  deadlift: { id: "VL5Ab0T07e4", start: 133, end: 492, channel: "Jeff Nippard" }, // 2:13 Equipment and setup
+  row: { id: "axoeDmW0oAY", start: 107, end: 415, channel: "Jeff Nippard" }, // 1:47 Setup and standards
   // TNF (Joel Twinem): the two exercises with a dedicated technique chapter in his videos.
-  pullup: { id: "H5iWiITjSsk", start: 631, channel: "TNF" }, // 10:31 Pull-up techniques
-  "lat-pulldown": { id: "CfF9yHddPxA", start: 647, channel: "TNF" }, // 10:47 Proper lat pulldown technique
-  "pec-deck": { id: "ADfBvG03mlQ", start: 210, channel: "TNF" }, // 3:30 Pec deck machine techniques
-  "t-bar-row": { id: "ZXZerZidLWc", start: 317, channel: "TNF" }, // 5:17 T-bar row training
-  "leg-curl": { id: "N9vekm54zz4", start: 550, channel: "TNF" }, // 9:10 Hamstring curls
-  sldl: { id: "N9vekm54zz4", start: 346, channel: "TNF" }, // 5:46 Stiff leg deadlifts
-  "incline-smith": { id: "ADfBvG03mlQ", start: 49, channel: "TNF" }, // 0:49 Incline smith chest press
-  squat: { id: "bEv6CCg2BC8", start: 148, channel: "Jeff Nippard" }, // 2:28 Bar setup and walkout
-  rdl: { id: "_oyxCn2iSjU", start: 82, channel: "Jeff Nippard" }, // 1:22 RDL setup and execution
+  pullup: { id: "H5iWiITjSsk", start: 631, end: 737, channel: "TNF" }, // 10:31 Pull-up techniques
+  "lat-pulldown": { id: "CfF9yHddPxA", start: 647, end: 747, channel: "TNF" }, // 10:47 Proper lat pulldown technique
+  "pec-deck": { id: "ADfBvG03mlQ", start: 210, end: 305, channel: "TNF" }, // 3:30 Pec deck machine techniques
+  "t-bar-row": { id: "ZXZerZidLWc", start: 317, end: 462, channel: "TNF" }, // 5:17 T-bar row training
+  "leg-curl": { id: "N9vekm54zz4", start: 550, end: 718, channel: "TNF" }, // 9:10 Hamstring curls
+  sldl: { id: "N9vekm54zz4", start: 346, end: 550, channel: "TNF" }, // 5:46 Stiff leg deadlifts
+  "incline-smith": { id: "ADfBvG03mlQ", start: 49, end: 125, channel: "TNF" }, // 0:49 Incline smith chest press
+  squat: { id: "bEv6CCg2BC8", start: 148, end: 556, channel: "Jeff Nippard" }, // 2:28 Bar setup and walkout
+  rdl: { id: "_oyxCn2iSjU", start: 82, end: 349, channel: "Jeff Nippard" }, // 1:22 RDL setup and execution
   "leg-extension": { id: "ljO4jkwv8wQ", channel: "Jeff Nippard" }, // whole video is about leg extensions
-  lunge: { id: "3ryh7PNhz3E", start: 565, channel: "Jeff Nippard" }, // 9:25 Walking Lunge
-  ohp: { id: "_RlRDWO2jfg", start: 112, channel: "Jeff Nippard" }, // 1:52 Setup and bar loading
-  "plate-shoulder-press": { id: "SgyUoY0IZ7A", start: 349, channel: "Jeff Nippard" }, // 5:49 Machine Shoulder Press
-  "lateral-raise": { id: "v_ZkxWzYnMc", start: 191, channel: "Jeff Nippard" }, // 3:11 Lateral Raise Technique
-  "cable-lateral-raise": { id: "SgyUoY0IZ7A", start: 477, channel: "Jeff Nippard" }, // 7:57 Cable Lateral Raise
+  lunge: { id: "3ryh7PNhz3E", start: 565, end: 612, channel: "Jeff Nippard" }, // 9:25 Walking Lunge
+  ohp: { id: "_RlRDWO2jfg", start: 112, end: 399, channel: "Jeff Nippard" }, // 1:52 Setup and bar loading
+  "plate-shoulder-press": { id: "SgyUoY0IZ7A", start: 349, end: 382, channel: "Jeff Nippard" }, // 5:49 Machine Shoulder Press
+  "lateral-raise": { id: "v_ZkxWzYnMc", start: 191, end: 327, channel: "Jeff Nippard" }, // 3:11 Lateral Raise Technique
+  "cable-lateral-raise": { id: "SgyUoY0IZ7A", start: 477, end: 533, channel: "Jeff Nippard" }, // 7:57 Cable Lateral Raise
   "cable-rear-delt-fly": { id: "SgyUoY0IZ7A", start: 718, channel: "Jeff Nippard" }, // 11:58 Reverse Cable Crossover
-  "reverse-pec-deck": { id: "SgyUoY0IZ7A", start: 626, channel: "Jeff Nippard" }, // 10:26 Reverse Pec Deck
-  curl: { id: "GNO4OtYoCYk", start: 116, channel: "Jeff Nippard" }, // 1:56 Barbell Curl
-  "preacher-curl": { id: "GNO4OtYoCYk", start: 368, channel: "Jeff Nippard" }, // 6:08 Scott Curl (barbell/EZ preacher curl)
-  "db-preacher-curl": { id: "GNO4OtYoCYk", start: 265, channel: "Jeff Nippard" }, // 4:25 DB Preacher Curl
-  "tricep-pushdown": { id: "OpRMRhr0Ycc", start: 60, channel: "Jeff Nippard" }, // 1:00 Triceps Pressdown
+  "reverse-pec-deck": { id: "SgyUoY0IZ7A", start: 626, end: 661, channel: "Jeff Nippard" }, // 10:26 Reverse Pec Deck
+  curl: { id: "GNO4OtYoCYk", start: 116, end: 165, channel: "Jeff Nippard" }, // 1:56 Barbell Curl
+  "preacher-curl": { id: "GNO4OtYoCYk", start: 368, end: 390, channel: "Jeff Nippard" }, // 6:08 Scott Curl (barbell/EZ preacher curl)
+  "db-preacher-curl": { id: "GNO4OtYoCYk", start: 265, end: 320, channel: "Jeff Nippard" }, // 4:25 DB Preacher Curl
+  "tricep-pushdown": { id: "OpRMRhr0Ycc", start: 60, end: 129, channel: "Jeff Nippard" }, // 1:00 Triceps Pressdown
   // No Jeff Nippard or TNF chapter for the one-arm version: a dedicated tutorial instead.
   "one-arm-tricep-ext": { id: "YZngJdQ71k0", channel: "Jayd Harrison" }, // Single Arm Tricep Pushdown (Proper Form Tutorial)
-  plank: { id: "1G0y8D5rFDc", start: 74, channel: "Jeff Nippard" }, // 1:14 Plank
-  "hanging-leg-raise": { id: "2RrGnjxSsiA", start: 247, channel: "Jeff Nippard" }, // 4:07 Hanging leg raises
+  plank: { id: "1G0y8D5rFDc", start: 74, end: 178, channel: "Jeff Nippard" }, // 1:14 Plank
+  "hanging-leg-raise": { id: "2RrGnjxSsiA", start: 247, end: 371, channel: "Jeff Nippard" }, // 4:07 Hanging leg raises
   "kb-swing": { id: "3ryh7PNhz3E", start: 765, channel: "Jeff Nippard" }, // 12:45 Kettlebell Swing
   // No suitable Jeff Nippard video (or no chapter to point at): other channels.
   "leg-press": { id: "cDGOn-yfKJA", channel: "NASM" },
@@ -86,7 +87,8 @@ export function parseYouTube(input: string): VideoRef | null {
   }
   if (!id || !ID.test(id)) return null;
   const start = parseTime(url.searchParams.get("t") ?? url.searchParams.get("start"));
-  return start ? { id, start } : { id };
+  const end = parseTime(url.searchParams.get("end"));
+  return { id, ...(start && { start }), ...(end && end > (start ?? 0) && { end }) };
 }
 
 export interface ResolvedVideo {
@@ -105,12 +107,12 @@ export function videoFor(state: Pick<AppState, "videoChoices">, exerciseId: stri
   if (choice && choice.video !== "default") {
     return choice.video ? { video: choice.video, source: "custom", hasDefault } : { video: null, source: "none", hasDefault };
   }
-  return def ? { video: { id: def.id, start: def.start }, channel: def.channel, source: "default", hasDefault } : { video: null, source: "none", hasDefault };
+  return def ? { video: { id: def.id, start: def.start, end: def.end }, channel: def.channel, source: "default", hasDefault } : { video: null, source: "none", hasDefault };
 }
 
 /** Privacy-enhanced embed: no YouTube cookies until the viewer presses play. */
 export const embedUrl = (v: VideoRef): string =>
-  `https://www.youtube-nocookie.com/embed/${v.id}?rel=0&playsinline=1${v.start ? `&start=${v.start}` : ""}`;
+  `https://www.youtube-nocookie.com/embed/${v.id}?rel=0&playsinline=1${v.start ? `&start=${v.start}` : ""}${v.end ? `&end=${v.end}` : ""}`;
 
 export const watchUrl = (v: VideoRef): string =>
   `https://www.youtube.com/watch?v=${v.id}${v.start ? `&t=${v.start}s` : ""}`;
