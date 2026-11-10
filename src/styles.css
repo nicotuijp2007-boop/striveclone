@@ -218,3 +218,9 @@ rect.today { stroke: var(--text); stroke-width: 1.5; }
 .video-frame.offline { display: grid; place-items: center; padding: 16px; text-align: center; background: var(--surface-2); }
 .sheet a { color: var(--accent); }
 .row.wrap { flex-wrap: wrap; }
+
+/* Room for the hosting badge Netlify adds on the free plan (about 50px, bottom-right). */
+:root[data-host-badge] { --host-badge: 52px; }
+:root[data-host-badge] .tabs { padding-bottom: calc(env(safe-area-inset-bottom) + var(--host-badge)); }
+:root[data-host-badge] .rest-bar { bottom: calc(70px + env(safe-area-inset-bottom) + var(--host-badge)); }
+:root[data-host-badge] .app { padding-bottom: calc(76px + env(safe-area-inset-bottom) + var(--host-badge)); }
