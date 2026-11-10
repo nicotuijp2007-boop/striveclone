@@ -26,6 +26,8 @@ export const DEFAULT_VIDEOS: Record<string, DefaultVideo> = {
   ohp: { id: "_RlRDWO2jfg", start: 112, channel: "Jeff Nippard" }, // 1:52 Setup and bar loading
   "lateral-raise": { id: "v_ZkxWzYnMc", start: 191, channel: "Jeff Nippard" }, // 3:11 Lateral Raise Technique
   curl: { id: "GNO4OtYoCYk", start: 116, channel: "Jeff Nippard" }, // 1:56 Barbell Curl
+  "preacher-curl": { id: "GNO4OtYoCYk", start: 368, channel: "Jeff Nippard" }, // 6:08 Scott Curl (barbell/EZ preacher curl)
+  "db-preacher-curl": { id: "GNO4OtYoCYk", start: 265, channel: "Jeff Nippard" }, // 4:25 DB Preacher Curl
   "tricep-pushdown": { id: "OpRMRhr0Ycc", start: 60, channel: "Jeff Nippard" }, // 1:00 Triceps Pressdown
   plank: { id: "1G0y8D5rFDc", start: 74, channel: "Jeff Nippard" }, // 1:14 Plank
   "hanging-leg-raise": { id: "2RrGnjxSsiA", start: 247, channel: "Jeff Nippard" }, // 4:07 Hanging leg raises

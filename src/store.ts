@@ -24,7 +24,11 @@ export const loadState = (): AppState => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return initialState();
     const parsed = JSON.parse(raw) as Partial<AppState>;
-    return { ...initialState(), ...parsed, settings: { ...initialState().settings, ...parsed.settings } };
+    const base = initialState();
+    // Built-in exercises added in later versions are missing from older saved lists.
+    const saved = parsed.exercises ?? base.exercises;
+    const exercises = [...saved, ...DEFAULT_EXERCISES.filter((d) => !saved.some((e) => e.id === d.id))];
+    return { ...base, ...parsed, exercises, settings: { ...base.settings, ...parsed.settings } };
   } catch {
     return initialState();
   }
