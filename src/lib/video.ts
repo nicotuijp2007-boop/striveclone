@@ -25,6 +25,7 @@ export const DEFAULT_VIDEOS: Record<string, DefaultVideo> = {
   rdl: { id: "_oyxCn2iSjU", start: 82, channel: "Jeff Nippard" }, // 1:22 RDL setup and execution
   lunge: { id: "3ryh7PNhz3E", start: 565, channel: "Jeff Nippard" }, // 9:25 Walking Lunge
   ohp: { id: "_RlRDWO2jfg", start: 112, channel: "Jeff Nippard" }, // 1:52 Setup and bar loading
+  "plate-shoulder-press": { id: "SgyUoY0IZ7A", start: 349, channel: "Jeff Nippard" }, // 5:49 Machine Shoulder Press
   "lateral-raise": { id: "v_ZkxWzYnMc", start: 191, channel: "Jeff Nippard" }, // 3:11 Lateral Raise Technique
   curl: { id: "GNO4OtYoCYk", start: 116, channel: "Jeff Nippard" }, // 1:56 Barbell Curl
   "preacher-curl": { id: "GNO4OtYoCYk", start: 368, channel: "Jeff Nippard" }, // 6:08 Scott Curl (barbell/EZ preacher curl)
