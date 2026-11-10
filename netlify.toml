@@ -1,8 +1,6 @@
 [build]
   command = "npm run build"
   publish = "dist"
-  # Skip builds that wouldn't change the live app, and all non-production builds, to save deploy credits.
-  ignore = "bash scripts/netlify-ignore.sh"
 
 [build.environment]
   NODE_VERSION = "22"
