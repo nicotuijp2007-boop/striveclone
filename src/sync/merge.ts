@@ -38,6 +38,17 @@ function unionBy<T>(local: T[], remote: T[], key: (t: T) => string, markers: Rec
   return [...out.entries()].filter(([k]) => !isDeleted(markers, k)).map(([, v]) => v);
 }
 
+/** One entry per key, keeping whichever side chose most recently (`at`); ties keep the local one. */
+function latestBy<T extends { at: number }>(local: T[], remote: T[], key: (t: T) => string): T[] {
+  const out = new Map<string, T>();
+  for (const r of remote) out.set(key(r), r);
+  for (const l of local) {
+    const r = out.get(key(l));
+    if (!r || l.at >= r.at) out.set(key(l), l);
+  }
+  return [...out.values()];
+}
+
 /**
  * Combine this device's state with the cloud copy. Lists are merged by id, the latest delete or
  * re-add wins, and settings and the in-progress workout come from this device.
@@ -54,6 +65,7 @@ export function mergeStates(local: AppState, remote: Partial<SyncedData>): AppSt
     bodyWeight: merge(local.bodyWeight, remote.bodyWeight, (b) => `bw:${b.date}`).sort((a, b) => a.date.localeCompare(b.date)),
     trackedPRs: merge(local.trackedPRs, remote.trackedPRs, (t) => `tracked:${t.exerciseId}`),
     manualPRs: merge(local.manualPRs, remote.manualPRs, (m) => `manualPR:${m.id}`),
+    videoChoices: latestBy(local.videoChoices, remote.videoChoices ?? [], (c) => c.exerciseId),
     deleted,
   };
 }

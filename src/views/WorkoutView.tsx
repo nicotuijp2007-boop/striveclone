@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useApp, useNow } from "../context";
 import { ExercisePicker } from "../components/ExercisePicker";
 import { NumberField } from "../components/NumberField";
+import { FormVideoSheet } from "../components/FormVideoSheet";
 import { bestEst1RM, completedSetCount, estimate1RM, formatKg, weekStreak, workoutVolume } from "../lib/stats";
 import { formatClock } from "../lib/audio";
 
@@ -62,6 +63,7 @@ function ActiveWorkout() {
   const now = useNow(true, 1000);
   const [picking, setPicking] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [videoFor, setVideoFor] = useState<string | null>(null);
 
   useEffect(() => {
     if (!toast) return;
@@ -107,9 +109,14 @@ function ActiveWorkout() {
           <div key={we.id} className="card">
             <div className="section-head">
               <h3>{ex?.name ?? "Unknown exercise"}</h3>
-              <button className="btn ghost sm danger" onClick={() => dispatch({ type: "removeExerciseFromWorkout", workoutExerciseId: we.id })}>
-                Remove
-              </button>
+              <div className="row tight">
+                <button className="btn ghost sm form-btn" onClick={() => setVideoFor(we.exerciseId)} aria-label={`Watch ${ex?.name ?? ""} form video`}>
+                  ▶ Form
+                </button>
+                <button className="btn ghost sm danger" onClick={() => dispatch({ type: "removeExerciseFromWorkout", workoutExerciseId: we.id })}>
+                  Remove
+                </button>
+              </div>
             </div>
             <div className="set-table">
               <div className="set-row head"><span>Set</span><span>kg</span><span>Reps</span><span>Done</span><span /></div>
@@ -150,6 +157,8 @@ function ActiveWorkout() {
         }}>Discard</button>
         <button className="btn primary grow" onClick={finish}>Finish workout</button>
       </div>
+
+      {videoFor && <FormVideoSheet exerciseId={videoFor} onClose={() => setVideoFor(null)} />}
 
       {toast && <div className="toast" role="status" onClick={() => setToast(null)}>{toast}</div>}
 

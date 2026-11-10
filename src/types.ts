@@ -63,6 +63,19 @@ export interface ManualPR {
   date: number;
 }
 
+/** A YouTube video, optionally starting part-way in. */
+export interface VideoRef {
+  id: string;
+  start?: number; // seconds
+}
+
+/** The user's choice of form video for an exercise: their own link, none, or back to the default. */
+export interface VideoChoice {
+  exerciseId: string;
+  video: VideoRef | null | "default";
+  at: number; // when chosen; the latest choice wins when devices sync
+}
+
 export interface Settings {
   restSeconds: number;
   autoRest: boolean;
@@ -77,6 +90,7 @@ export interface AppState {
   bodyWeight: BodyWeightEntry[]; // sorted by date ascending
   trackedPRs: TrackedPR[];
   manualPRs: ManualPR[];
+  videoChoices: VideoChoice[];
   settings: Settings;
   /** Deletion markers ("workout:<id>", "bw:<date>", ...) → time deleted, so sync doesn't bring deleted items back. */
   deleted: Record<string, number>;
