@@ -5,6 +5,7 @@ import { NumberField } from "../components/NumberField";
 import { TrackedPRs } from "../components/TrackedPRs";
 import { exerciseHistory, personalRecords } from "../lib/stats";
 import { TrainingHeatmap, WeekChecks } from "../components/ActivityCalendar";
+import { WeekSummary } from "../components/WeekSummary";
 
 const ACCENT = "var(--accent)";
 const shortDate = (t: number) => new Date(t).toLocaleDateString(undefined, { day: "numeric", month: "short" });
@@ -34,6 +35,7 @@ export function ProgressView() {
 
       <TrainingHeatmap workouts={state.workouts} />
       <WeekChecks workouts={state.workouts} />
+      <WeekSummary />
 
       <TrackedPRs />
 

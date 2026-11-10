@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bestEst1RM, estimate1RM, exerciseHistory, personalRecords, weekStreak, weeklySummary, workoutVolume } from "./stats";
+import { bestEst1RM, estimate1RM, exerciseHistory, weekReport, personalRecords, weekStreak, weeklySummary, workoutVolume } from "./stats";
 import type { Workout } from "../types";
 
 const day = 864e5;
@@ -56,5 +56,37 @@ describe("records with hand-entered PRs", () => {
     expect(bestEst1RM(ws, [{ id: "m", exerciseId: "bench", weight: 105, reps: 1, date: 0 }], "bench")).toBe(105);
     expect(bestEst1RM(ws, [], "bench", [{ weight: 107.5, reps: 1 }])).toBe(107.5);
     expect(bestEst1RM(ws, [], "squat")).toBe(0);
+  });
+});
+
+describe("weekReport", () => {
+  const now = new Date(2026, 10, 12, 20).getTime(); // Thu
+  const daysAgo = (n: number) => now - n * day;
+  it("compares this week with the same point last week", () => {
+    const ws = [
+      mk(daysAgo(1), "bench", [[100, 5]]), mk(daysAgo(2), "squat", [[100, 5], [100, 5]]),
+      mk(daysAgo(8), "bench", [[90, 5]]),
+      mk(daysAgo(6), "bench", [[90, 5]]), // last Friday: after "this time last week", so not counted
+    ];
+    const r = weekReport(ws, [], now);
+    expect(r.thisWeek).toMatchObject({ workouts: 2, sets: 3, volume: 1500 });
+    expect(r.lastWeek).toMatchObject({ workouts: 1, sets: 1, volume: 450 });
+  });
+
+  it("reports one PR per exercise against everything before it, ignoring first-ever lifts", () => {
+    const ws = [
+      mk(daysAgo(10), "bench", [[90, 5]]), // before this week: 105 est
+      mk(daysAgo(2), "bench", [[95, 5]]), // PR: 110.8
+      mk(daysAgo(1), "bench", [[100, 5]]), // PR again: 116.7, previous stays 105
+      mk(daysAgo(1), "squat", [[140, 5]]), // first time: not a PR
+    ];
+    const { newPRs } = weekReport(ws, [], now);
+    expect(newPRs).toHaveLength(1);
+    expect(newPRs[0]).toMatchObject({ exerciseId: "bench", weight: 100, reps: 5, previous: 105 });
+  });
+
+  it("counts hand-entered PRs from before this week as the bar to beat", () => {
+    const ws = [mk(daysAgo(10), "bench", [[80, 5]]), mk(daysAgo(1), "bench", [[90, 5]])];
+    expect(weekReport(ws, [{ id: "m", exerciseId: "bench", weight: 110, reps: 1, date: daysAgo(30) }], now).newPRs).toHaveLength(0);
   });
 });

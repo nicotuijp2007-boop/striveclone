@@ -124,7 +124,7 @@ export const weekStreak = (workouts: Workout[], now = Date.now()): number => {
 };
 
 export const formatKg = (n: number): string =>
-  n >= 10000 ? `${(n / 1000).toFixed(1)}t` : `${Math.round(n * 10) / 10} kg`;
+  n >= 10000 ? `${(n / 1000).toFixed(1)}t` : n >= 1000 ? `${Math.round(n).toLocaleString()} kg` : `${Math.round(n * 10) / 10} kg`;
 
 /** Local-date key, YYYY-MM-DD. */
 export const dayKey = (t: number | Date): string => {
@@ -158,3 +158,78 @@ export const intensityLevel = (volume: number, maxVolume: number, trained: boole
   if (maxVolume <= 0) return 2;
   return Math.min(4, Math.max(1, Math.ceil((volume / maxVolume) * 4)));
 };
+
+export interface WeekTotals {
+  workouts: number;
+  sets: number;
+  volume: number;
+  minutes: number;
+}
+
+export interface WeekPR {
+  exerciseId: string;
+  weight: number;
+  reps: number;
+  est1RM: number;
+  /** Best estimated 1RM before this week's PR. */
+  previous: number;
+  date: number;
+}
+
+export interface WeekReport {
+  thisWeek: WeekTotals;
+  /** Last week up to the same weekday and time, so a partial week compares fairly. */
+  lastWeek: WeekTotals;
+  /** Best new PR per exercise set this week (first-ever attempts at a lift don't count). */
+  newPRs: WeekPR[];
+}
+
+const totals = (ws: Workout[]): WeekTotals => ({
+  workouts: ws.length,
+  sets: ws.reduce((n, w) => n + completedSetCount(w), 0),
+  volume: ws.reduce((v, w) => v + workoutVolume(w), 0),
+  minutes: ws.reduce((m, w) => m + durationMinutes(w), 0),
+});
+
+/** This week (Monday to now) against the same stretch of last week, plus the PRs set this week. */
+export function weekReport(workouts: Workout[], manual: ManualPR[], now = Date.now()): WeekReport {
+  const thisStart = startOfWeek(now);
+  const lastStart = new Date(thisStart);
+  lastStart.setDate(lastStart.getDate() - 7);
+  const inRange = (t: number, a: number, b: number) => t >= a && t < b;
+
+  const thisWeek = workouts.filter((w) => inRange(w.startedAt, thisStart, now + 1));
+  const sameTimeLastWeek = new Date(now);
+  sameTimeLastWeek.setDate(sameTimeLastWeek.getDate() - 7);
+  const lastWeek = workouts.filter((w) => inRange(w.startedAt, lastStart.getTime(), sameTimeLastWeek.getTime() + 1));
+
+  // Best estimated 1RM per exercise from everything before this week.
+  const best = new Map<string, number>();
+  const bump = (id: string, est: number) => best.set(id, Math.max(best.get(id) ?? 0, est));
+  for (const w of workouts)
+    if (w.startedAt < thisStart) for (const we of w.exercises) for (const s of we.sets) if (s.done) bump(we.exerciseId, estimate1RM(s.weight, s.reps));
+  for (const m of manual) if (m.date < thisStart) bump(m.exerciseId, estimate1RM(m.weight, m.reps));
+
+  // Walk this week's sets in order; a set is a PR if it beats everything before it.
+  const prs = new Map<string, WeekPR>();
+  for (const w of [...thisWeek].sort((a, b) => a.startedAt - b.startedAt)) {
+    for (const we of w.exercises) {
+      for (const s of we.sets) {
+        if (!s.done) continue;
+        const est = estimate1RM(s.weight, s.reps);
+        const prev = best.get(we.exerciseId) ?? 0;
+        if (prev > 0 && est > prev) {
+          const first = prs.get(we.exerciseId);
+          prs.set(we.exerciseId, {
+            exerciseId: we.exerciseId, weight: s.weight, reps: s.reps,
+            est1RM: Math.round(est * 10) / 10,
+            previous: first?.previous ?? Math.round(prev * 10) / 10,
+            date: w.startedAt,
+          });
+        }
+        if (prev > 0 || est > 0) best.set(we.exerciseId, Math.max(prev, est));
+      }
+    }
+  }
+  return { thisWeek: totals(thisWeek), lastWeek: totals(lastWeek), newPRs: [...prs.values()].sort((a, b) => b.date - a.date) };
+}
