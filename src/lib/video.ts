@@ -22,6 +22,7 @@ export const DEFAULT_VIDEOS: Record<string, DefaultVideo> = {
   pullup: { id: "H5iWiITjSsk", start: 631, channel: "TNF" }, // 10:31 Pull-up techniques
   "lat-pulldown": { id: "CfF9yHddPxA", start: 647, channel: "TNF" }, // 10:47 Proper lat pulldown technique
   "pec-deck": { id: "ADfBvG03mlQ", start: 210, channel: "TNF" }, // 3:30 Pec deck machine techniques
+  "t-bar-row": { id: "ZXZerZidLWc", start: 317, channel: "TNF" }, // 5:17 T-bar row training
   "incline-smith": { id: "ADfBvG03mlQ", start: 49, channel: "TNF" }, // 0:49 Incline smith chest press
   squat: { id: "bEv6CCg2BC8", start: 148, channel: "Jeff Nippard" }, // 2:28 Bar setup and walkout
   rdl: { id: "_oyxCn2iSjU", start: 82, channel: "Jeff Nippard" }, // 1:22 RDL setup and execution
