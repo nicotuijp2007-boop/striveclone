@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { initialState, reducer } from "./store";
+import { initialState, loadState, reducer, STORAGE_KEY } from "./store";
 
 describe("reducer", () => {
   it("starts a workout from a routine and saves only completed sets", () => {
@@ -57,5 +57,19 @@ describe("tracked PRs", () => {
     expect(s.manualPRs).toHaveLength(1);
     s = reducer(s, { type: "deleteManualPR", id: s.manualPRs[0].id });
     expect(s.manualPRs).toHaveLength(0);
+  });
+});
+
+describe("loading saved data", () => {
+  it("adds built-in exercises introduced after the data was saved", () => {
+    const old = { ...initialState(), exercises: initialState().exercises.filter((e) => !e.id.includes("preacher")) };
+    old.exercises.push({ id: "custom-1", name: "My Curl", muscle: "Arms", custom: true });
+    const store = new Map([[STORAGE_KEY, JSON.stringify(old)]]);
+    (globalThis as any).localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: () => {} };
+    const ids = loadState().exercises.map((e) => e.id);
+    expect(ids).toContain("preacher-curl");
+    expect(ids).toContain("db-preacher-curl");
+    expect(ids).toContain("custom-1");
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });

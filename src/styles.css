@@ -95,8 +95,12 @@ main { padding: 4px 16px 88px; }
 .chip { border: 1px solid var(--border); background: var(--surface-2); border-radius: 999px; padding: 6px 12px; font-size: .85rem; white-space: nowrap; }
 .chip.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 
-.sheet-backdrop { position: fixed; inset: 0; background: rgb(0 0 0 / .55); z-index: 20; display: flex; align-items: flex-end; justify-content: center; }
-.sheet { background: var(--surface); width: 100%; max-width: 640px; max-height: 85dvh; border-radius: 18px 18px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; }
+/* Sized to the visible area (--vv-*, set from visualViewport in main.tsx) so an on-screen keyboard never covers a sheet. */
+.sheet-backdrop { position: fixed; left: 0; right: 0; top: var(--vv-top, 0px); height: var(--vv-height, 100dvh); background: rgb(0 0 0 / .55); z-index: 20; display: flex; align-items: flex-end; justify-content: center; }
+.sheet { background: var(--surface); width: 100%; max-width: 640px; max-height: min(85dvh, calc(var(--vv-height, 100dvh) - 24px)); overflow-y: auto; border-radius: 18px 18px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; }
+/* Only a list inside a sheet may shrink (and scroll); headers, inputs and chip rows keep their height. */
+.sheet > * { flex-shrink: 0; }
+.sheet > .pick-list { flex: 1 1 auto; min-height: 120px; }
 .sheet-head { display: flex; justify-content: space-between; align-items: center; }
 .create-row { display: flex; gap: 8px; }
 .create-row .input { width: 40%; }
