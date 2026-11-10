@@ -27,7 +27,7 @@ export const DEFAULT_EXERCISES: Exercise[] = [
   e("preacher-curl", "Preacher Curl", "Arms"),
   e("db-preacher-curl", "Dumbbell Preacher Curl", "Arms"),
   e("tricep-pushdown", "Tricep Pushdown", "Arms"),
-  e("one-arm-tricep-ext", "One-Arm Cable Tricep Extension", "Arms"),
+  e("one-arm-tricep-ext", "One-Arm Cable Tricep Pushdown", "Arms"),
   e("plank", "Plank (seconds as reps)", "Core"),
   e("hanging-leg-raise", "Hanging Leg Raise", "Core"),
   e("kb-swing", "Kettlebell Swing", "Full body"),
