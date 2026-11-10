@@ -67,6 +67,7 @@ export interface ManualPR {
 export interface VideoRef {
   id: string;
   start?: number; // seconds
+  end?: number; // seconds; the player stops here
 }
 
 /** The user's choice of form video for an exercise: their own link, none, or back to the default. */
