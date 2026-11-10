@@ -6,6 +6,7 @@ export const DEFAULT_EXERCISES: Exercise[] = [
   e("bench", "Bench Press", "Chest"),
   e("incline-db", "Incline Dumbbell Press", "Chest"),
   e("pushup", "Push-up", "Chest"),
+  e("pec-deck", "Pec Deck Fly", "Chest"),
   e("deadlift", "Deadlift", "Back"),
   e("row", "Barbell Row", "Back"),
   e("pullup", "Pull-up", "Back"),
