@@ -4,6 +4,8 @@ const e = (id: string, name: string, muscle: Exercise["muscle"]): Exercise => ({
 
 export const DEFAULT_EXERCISES: Exercise[] = [
   e("bench", "Bench Press", "Chest"),
+  e("incline-bench", "Incline Bench Press", "Chest"),
+  e("incline-smith", "Incline Smith Machine Press", "Chest"),
   e("incline-db", "Incline Dumbbell Press", "Chest"),
   e("pushup", "Push-up", "Chest"),
   e("pec-deck", "Pec Deck Fly", "Chest"),

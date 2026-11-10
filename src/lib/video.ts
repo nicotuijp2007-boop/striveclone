@@ -13,6 +13,7 @@ export interface DefaultVideo extends VideoRef {
 export const DEFAULT_VIDEOS: Record<string, DefaultVideo> = {
   // Jeff Nippard, starting at the chapter where the exercise's technique is explained.
   bench: { id: "vcBig73ojpE", start: 103, channel: "Jeff Nippard" }, // 1:43 Setup
+  "incline-bench": { id: "fGm-ef-4PVk", start: 153, channel: "Jeff Nippard" }, // 2:33 Incline Bench Press
   "incline-db": { id: "fGm-ef-4PVk", start: 256, channel: "Jeff Nippard" }, // 4:16 Incline Dumbbell Press
   pushup: { id: "fGm-ef-4PVk", start: 352, channel: "Jeff Nippard" }, // 5:52 Push-Ups
   deadlift: { id: "VL5Ab0T07e4", start: 133, channel: "Jeff Nippard" }, // 2:13 Equipment and setup
@@ -21,6 +22,7 @@ export const DEFAULT_VIDEOS: Record<string, DefaultVideo> = {
   pullup: { id: "H5iWiITjSsk", start: 631, channel: "TNF" }, // 10:31 Pull-up techniques
   "lat-pulldown": { id: "CfF9yHddPxA", start: 647, channel: "TNF" }, // 10:47 Proper lat pulldown technique
   "pec-deck": { id: "ADfBvG03mlQ", start: 210, channel: "TNF" }, // 3:30 Pec deck machine techniques
+  "incline-smith": { id: "ADfBvG03mlQ", start: 49, channel: "TNF" }, // 0:49 Incline smith chest press
   squat: { id: "bEv6CCg2BC8", start: 148, channel: "Jeff Nippard" }, // 2:28 Bar setup and walkout
   rdl: { id: "_oyxCn2iSjU", start: 82, channel: "Jeff Nippard" }, // 1:22 RDL setup and execution
   lunge: { id: "3ryh7PNhz3E", start: 565, channel: "Jeff Nippard" }, // 9:25 Walking Lunge
