@@ -23,9 +23,12 @@ export const DEFAULT_VIDEOS: Record<string, DefaultVideo> = {
   "lat-pulldown": { id: "CfF9yHddPxA", start: 647, channel: "TNF" }, // 10:47 Proper lat pulldown technique
   "pec-deck": { id: "ADfBvG03mlQ", start: 210, channel: "TNF" }, // 3:30 Pec deck machine techniques
   "t-bar-row": { id: "ZXZerZidLWc", start: 317, channel: "TNF" }, // 5:17 T-bar row training
+  "leg-curl": { id: "N9vekm54zz4", start: 550, channel: "TNF" }, // 9:10 Hamstring curls
+  sldl: { id: "N9vekm54zz4", start: 346, channel: "TNF" }, // 5:46 Stiff leg deadlifts
   "incline-smith": { id: "ADfBvG03mlQ", start: 49, channel: "TNF" }, // 0:49 Incline smith chest press
   squat: { id: "bEv6CCg2BC8", start: 148, channel: "Jeff Nippard" }, // 2:28 Bar setup and walkout
   rdl: { id: "_oyxCn2iSjU", start: 82, channel: "Jeff Nippard" }, // 1:22 RDL setup and execution
+  "leg-extension": { id: "ljO4jkwv8wQ", channel: "Jeff Nippard" }, // whole video is about leg extensions
   lunge: { id: "3ryh7PNhz3E", start: 565, channel: "Jeff Nippard" }, // 9:25 Walking Lunge
   ohp: { id: "_RlRDWO2jfg", start: 112, channel: "Jeff Nippard" }, // 1:52 Setup and bar loading
   "plate-shoulder-press": { id: "SgyUoY0IZ7A", start: 349, channel: "Jeff Nippard" }, // 5:49 Machine Shoulder Press
