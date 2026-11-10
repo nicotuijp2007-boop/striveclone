@@ -1,0 +1,22 @@
+# Free Supabase projects pause after 7 days without activity. This makes a tiny database
+# request twice a week so the project stays awake even when nobody opens the app.
+name: Keep Supabase awake
+
+on:
+  schedule:
+    - cron: "17 6 * * 1,4" # Mondays and Thursdays, 06:17 UTC
+  workflow_dispatch: # allows a manual run from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query the database
+        env:
+          # Same public values as netlify.toml; row-level security means this reads nothing.
+          SUPABASE_URL: https://xwcehbqagvybvvpctdmu.supabase.co
+          SUPABASE_KEY: sb_publishable_zBs5JJgytby80XZU9L-u1g_wTxtWWNm
+        run: |
+          curl --fail --silent --show-error \
+            "$SUPABASE_URL/rest/v1/user_data?select=rev&limit=1" \
+            -H "apikey: $SUPABASE_KEY"
