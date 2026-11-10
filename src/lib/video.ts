@@ -36,7 +36,7 @@ export const DEFAULT_VIDEOS: Record<string, DefaultVideo> = {
   "preacher-curl": { id: "GNO4OtYoCYk", start: 368, channel: "Jeff Nippard" }, // 6:08 Scott Curl (barbell/EZ preacher curl)
   "db-preacher-curl": { id: "GNO4OtYoCYk", start: 265, channel: "Jeff Nippard" }, // 4:25 DB Preacher Curl
   "tricep-pushdown": { id: "OpRMRhr0Ycc", start: 60, channel: "Jeff Nippard" }, // 1:00 Triceps Pressdown
-  "one-arm-tricep-ext": { id: "OpRMRhr0Ycc", start: 390, channel: "Jeff Nippard" }, // 6:30 1 Arm Dumbbell Overhead Extension
+  "one-arm-tricep-ext": { id: "OpRMRhr0Ycc", start: 295, channel: "Jeff Nippard" }, // 4:55 Katana Cable Triceps Extension (one arm)
   plank: { id: "1G0y8D5rFDc", start: 74, channel: "Jeff Nippard" }, // 1:14 Plank
   "hanging-leg-raise": { id: "2RrGnjxSsiA", start: 247, channel: "Jeff Nippard" }, // 4:07 Hanging leg raises
   "kb-swing": { id: "3ryh7PNhz3E", start: 765, channel: "Jeff Nippard" }, // 12:45 Kettlebell Swing
