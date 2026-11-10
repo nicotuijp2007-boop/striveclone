@@ -7,27 +7,30 @@ export interface DefaultVideo extends VideoRef {
 
 /**
  * Form videos for the built-in exercises. Each was checked with YouTube's oEmbed endpoint to exist,
- * allow embedding, and come from the channel listed. Users can swap any of them in the app.
+ * allow embedding, and come from the channel listed; start times come from the videos' own chapters.
+ * Users can swap any of them in the app.
  */
 export const DEFAULT_VIDEOS: Record<string, DefaultVideo> = {
-  bench: { id: "gRVjAtPip0Y", channel: "Buff Dudes" },
-  "incline-db": { id: "sh5ZsRpEZCw", channel: "All Strength Training" },
-  pushup: { id: "M7fWdJlDxPQ", channel: "Insider Tech" },
-  deadlift: { id: "xkb5_v6t8xI", channel: "Liberate Strength" },
-  row: { id: "A1tmBJKKfVs", channel: "Barbell Logic" },
-  pullup: { id: "9yVGh3XbJ34", channel: "NASM" },
-  "lat-pulldown": { id: "rpkWBC1gCcE", channel: "Tim Bullici" },
-  squat: { id: "QLbMsabhBqY", channel: "Syracuse Fitness Center" },
-  rdl: { id: "7j-2w4-P14I", channel: "Nuffield Health" },
+  // Jeff Nippard, starting at the chapter where the exercise's technique is explained.
+  bench: { id: "vcBig73ojpE", start: 103, channel: "Jeff Nippard" }, // 1:43 Setup
+  "incline-db": { id: "fGm-ef-4PVk", start: 256, channel: "Jeff Nippard" }, // 4:16 Incline Dumbbell Press
+  pushup: { id: "fGm-ef-4PVk", start: 352, channel: "Jeff Nippard" }, // 5:52 Push-Ups
+  deadlift: { id: "VL5Ab0T07e4", start: 133, channel: "Jeff Nippard" }, // 2:13 Equipment and setup
+  row: { id: "axoeDmW0oAY", start: 107, channel: "Jeff Nippard" }, // 1:47 Setup and standards
+  pullup: { id: "Hdc7Mw6BIEE", start: 120, channel: "Jeff Nippard" }, // 2:00 Technique
+  "lat-pulldown": { id: "O94yEoGXtBY", start: 84, channel: "Jeff Nippard" }, // 1:24 Biomechanics and setup
+  squat: { id: "bEv6CCg2BC8", start: 148, channel: "Jeff Nippard" }, // 2:28 Bar setup and walkout
+  rdl: { id: "_oyxCn2iSjU", start: 82, channel: "Jeff Nippard" }, // 1:22 RDL setup and execution
+  lunge: { id: "3ryh7PNhz3E", start: 565, channel: "Jeff Nippard" }, // 9:25 Walking Lunge
+  ohp: { id: "_RlRDWO2jfg", start: 112, channel: "Jeff Nippard" }, // 1:52 Setup and bar loading
+  "lateral-raise": { id: "v_ZkxWzYnMc", start: 191, channel: "Jeff Nippard" }, // 3:11 Lateral Raise Technique
+  curl: { id: "GNO4OtYoCYk", start: 116, channel: "Jeff Nippard" }, // 1:56 Barbell Curl
+  "tricep-pushdown": { id: "OpRMRhr0Ycc", start: 60, channel: "Jeff Nippard" }, // 1:00 Triceps Pressdown
+  plank: { id: "1G0y8D5rFDc", start: 74, channel: "Jeff Nippard" }, // 1:14 Plank
+  "hanging-leg-raise": { id: "2RrGnjxSsiA", start: 247, channel: "Jeff Nippard" }, // 4:07 Hanging leg raises
+  "kb-swing": { id: "3ryh7PNhz3E", start: 765, channel: "Jeff Nippard" }, // 12:45 Kettlebell Swing
+  // No suitable Jeff Nippard video (or no chapter to point at): other channels.
   "leg-press": { id: "cDGOn-yfKJA", channel: "NASM" },
-  lunge: { id: "qLyj6xo3j5c", channel: "Quadzilla Hikes" },
-  ohp: { id: "3VpI0V_9D0Y", channel: "All Strength Training" },
-  "lateral-raise": { id: "Y29xKcze8Ik", channel: "Physique Development" },
-  curl: { id: "9BpYNH4nb_Q", channel: "All Strength Training" },
-  "tricep-pushdown": { id: "ChbWX35gD44", channel: "Fitness Freek" },
-  plank: { id: "mwlp75MS6Rg", channel: "NASM" },
-  "hanging-leg-raise": { id: "ByPKcOzBH1g", channel: "Fitness By Physio" },
-  "kb-swing": { id: "B_x0tp3HIbk", channel: "Brandon Palmer" },
   burpee: { id: "qLBImHhCXSw", channel: "Well+Good" },
   "row-erg": { id: "40ux8YGY0PU", channel: "Philadelphia College of Osteopathic Medicine" },
 };
