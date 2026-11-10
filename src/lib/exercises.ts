@@ -19,6 +19,8 @@ export const DEFAULT_EXERCISES: Exercise[] = [
   e("plate-shoulder-press", "Plate-Loaded Shoulder Press", "Shoulders"),
   e("lateral-raise", "Lateral Raise", "Shoulders"),
   e("cable-lateral-raise", "Cable Lateral Raise", "Shoulders"),
+  e("cable-rear-delt-fly", "Cable Rear Delt Fly", "Shoulders"),
+  e("reverse-pec-deck", "Reverse Pec Deck", "Shoulders"),
   e("curl", "Barbell Curl", "Arms"),
   e("preacher-curl", "Preacher Curl", "Arms"),
   e("db-preacher-curl", "Dumbbell Preacher Curl", "Arms"),

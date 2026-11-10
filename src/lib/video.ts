@@ -28,6 +28,8 @@ export const DEFAULT_VIDEOS: Record<string, DefaultVideo> = {
   "plate-shoulder-press": { id: "SgyUoY0IZ7A", start: 349, channel: "Jeff Nippard" }, // 5:49 Machine Shoulder Press
   "lateral-raise": { id: "v_ZkxWzYnMc", start: 191, channel: "Jeff Nippard" }, // 3:11 Lateral Raise Technique
   "cable-lateral-raise": { id: "SgyUoY0IZ7A", start: 477, channel: "Jeff Nippard" }, // 7:57 Cable Lateral Raise
+  "cable-rear-delt-fly": { id: "SgyUoY0IZ7A", start: 718, channel: "Jeff Nippard" }, // 11:58 Reverse Cable Crossover
+  "reverse-pec-deck": { id: "SgyUoY0IZ7A", start: 626, channel: "Jeff Nippard" }, // 10:26 Reverse Pec Deck
   curl: { id: "GNO4OtYoCYk", start: 116, channel: "Jeff Nippard" }, // 1:56 Barbell Curl
   "preacher-curl": { id: "GNO4OtYoCYk", start: 368, channel: "Jeff Nippard" }, // 6:08 Scott Curl (barbell/EZ preacher curl)
   "db-preacher-curl": { id: "GNO4OtYoCYk", start: 265, channel: "Jeff Nippard" }, // 4:25 DB Preacher Curl
