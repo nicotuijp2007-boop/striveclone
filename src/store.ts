@@ -1,4 +1,4 @@
-import type { AppState, Exercise, Routine, SetEntry, Settings, Workout } from "./types";
+import type { AppState, Exercise, Routine, SetEntry, Settings, VideoRef, Workout } from "./types";
 import { DEFAULT_EXERCISES, DEFAULT_ROUTINES } from "./lib/exercises";
 import { uid } from "./lib/id";
 import { mergeStates, tombstone, untombstone, type SyncedData } from "./sync/merge";
@@ -14,6 +14,7 @@ export const initialState = (): AppState => ({
   bodyWeight: [],
   trackedPRs: [],
   manualPRs: [],
+  videoChoices: [],
   deleted: {},
   settings: { restSeconds: 90, autoRest: true },
 });
@@ -59,6 +60,7 @@ export type Action =
   | { type: "setPRGoal"; exerciseId: string; goalKg?: number }
   | { type: "addManualPR"; exerciseId: string; weight: number; reps: number; date: number }
   | { type: "deleteManualPR"; id: string }
+  | { type: "setExerciseVideo"; exerciseId: string; video: VideoRef | null | "default"; now?: number }
   | { type: "updateSettings"; patch: Partial<Settings> }
   | { type: "importState"; state: AppState }
   /** Combine data pulled from the cloud into the current state. */
@@ -223,6 +225,14 @@ export function reducer(state: AppState, action: Action): AppState {
       };
     case "deleteManualPR":
       return tombstone({ ...state, manualPRs: state.manualPRs.filter((m) => m.id !== action.id) }, `manualPR:${action.id}`);
+    case "setExerciseVideo":
+      return {
+        ...state,
+        videoChoices: [
+          ...state.videoChoices.filter((c) => c.exerciseId !== action.exerciseId),
+          { exerciseId: action.exerciseId, video: action.video, at: action.now ?? Date.now() },
+        ],
+      };
     case "updateSettings":
       return { ...state, settings: { ...state.settings, ...action.patch } };
     case "importState": {

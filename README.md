@@ -9,6 +9,7 @@ A mobile-first fitness tracker built as an installable web app (PWA). Data is al
 - **This week**: workouts, sets, volume and training time compared with the same point last week, plus the PRs set this week.
 - **Tracked PRs**: choose the lifts you care about, set an optional goal (estimated 1RM), and enter PRs set before you used the app. Ticking a set that beats a tracked PR shows a "New PR!" alert.
 - **Progress**: a heatmap of training days over the last 36 weeks (brighter = more volume), a Mon–Sun check row for this week (×N for multiple sessions), estimated 1RM trend per exercise (Epley), personal records, and a body-weight log with a chart.
+- **Form videos**: a ▶ Form button on each exercise in a workout plays a YouTube form tutorial (privacy-enhanced embed). All built-in exercises have a checked default; you can paste your own link, remove it, or go back to the default. Choices sync across devices.
 - **Timers**: a rest timer that starts automatically when you tick off a set and stays visible on every tab, plus an interval timer with Tabata, HIIT and EMOM presets. Both beep and vibrate.
 - **History**: past workouts with duration and volume, plus JSON export and import for backups.
 - Works offline once loaded, and can be installed to the home screen.
