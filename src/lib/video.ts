@@ -16,6 +16,7 @@ export const DEFAULT_VIDEOS: Record<string, DefaultVideo> = {
   "incline-bench": { id: "fGm-ef-4PVk", start: 153, channel: "Jeff Nippard" }, // 2:33 Incline Bench Press
   "incline-db": { id: "fGm-ef-4PVk", start: 256, channel: "Jeff Nippard" }, // 4:16 Incline Dumbbell Press
   pushup: { id: "fGm-ef-4PVk", start: 352, channel: "Jeff Nippard" }, // 5:52 Push-Ups
+  "weighted-dips": { id: "yN6Q1UI_xkE", start: 161, channel: "Jeff Nippard" }, // 2:41 Proper dip execution
   deadlift: { id: "VL5Ab0T07e4", start: 133, channel: "Jeff Nippard" }, // 2:13 Equipment and setup
   row: { id: "axoeDmW0oAY", start: 107, channel: "Jeff Nippard" }, // 1:47 Setup and standards
   // TNF (Joel Twinem): the two exercises with a dedicated technique chapter in his videos.
