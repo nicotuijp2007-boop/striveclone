@@ -18,6 +18,7 @@ export const DEFAULT_EXERCISES: Exercise[] = [
   e("ohp", "Overhead Press", "Shoulders"),
   e("plate-shoulder-press", "Plate-Loaded Shoulder Press", "Shoulders"),
   e("lateral-raise", "Lateral Raise", "Shoulders"),
+  e("cable-lateral-raise", "Cable Lateral Raise", "Shoulders"),
   e("curl", "Barbell Curl", "Arms"),
   e("preacher-curl", "Preacher Curl", "Arms"),
   e("db-preacher-curl", "Dumbbell Preacher Curl", "Arms"),
