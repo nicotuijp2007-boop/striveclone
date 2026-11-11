@@ -75,7 +75,7 @@ main { padding: 4px 16px 88px; }
 .stat-value { font-size: 1.7rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 
 .workout-head { display: flex; flex-direction: column; gap: 4px; }
-.workout-meta { display: flex; gap: 16px; color: var(--muted); font-size: .9rem; font-variant-numeric: tabular-nums; }
+.workout-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 16px; color: var(--muted); font-size: .9rem; font-variant-numeric: tabular-nums; }
 
 .set-table { display: flex; flex-direction: column; gap: 6px; }
 .set-row { display: grid; grid-template-columns: 32px 1fr 1fr 44px 28px; gap: 8px; align-items: center; border-radius: 10px; }
@@ -181,7 +181,7 @@ rect.today { stroke: var(--text); stroke-width: 1.5; }
 .wk-label { font-size: .85rem; color: var(--text); }
 .wk-day.is-today .wk-label { color: var(--accent); font-weight: 700; }
 .wk-icon { position: relative; display: grid; color: var(--border); }
-.wk-day.missed .wk-icon { color: color-mix(in srgb, var(--muted) 55%, transparent); }
+.wk-day.missed .wk-icon { color: var(--border); }
 .wk-day.done .wk-icon { color: var(--accent); }
 .wk-count { position: absolute; right: -14px; bottom: -8px; font-size: .78rem; font-weight: 800; color: var(--accent); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -228,3 +228,28 @@ rect.today { stroke: var(--text); stroke-width: 1.5; }
 :root[data-host-badge] .tabs { padding-bottom: calc(env(safe-area-inset-bottom) + var(--host-badge)); }
 :root[data-host-badge] .rest-bar { bottom: calc(70px + env(safe-area-inset-bottom) + var(--host-badge)); }
 :root[data-host-badge] .app { padding-bottom: calc(76px + env(safe-area-inset-bottom) + var(--host-badge)); }
+
+/* Home dashboard */
+.resume { text-align: left; gap: 2px; border-color: var(--accent); }
+.resume strong { font-size: 1.15rem; }
+.resume-cta { color: var(--accent); font-weight: 700; margin-top: 4px; }
+.quick-start { display: flex; flex-wrap: wrap; gap: 8px; }
+.quick-start .btn { flex: 1 1 calc(50% - 4px); min-width: 0; }
+.tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+@media (min-width: 560px) { .tiles { grid-template-columns: repeat(3, 1fr); } }
+.tile { position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px;
+  min-height: 150px; padding: 12px; text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.tile > * { position: relative; }
+.tile-value { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.tile-value small { font-size: .85rem; font-weight: 600; color: var(--muted); }
+.tile-title { margin-top: 6px; font-size: .82rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile-caption { font-size: .72rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Chart across the top of the tile, numbers below it (in normal flow, so they never overlap). */
+.tile .spark { display: block; width: calc(100% + 24px); height: 56px; margin: -2px -12px 8px; flex-shrink: 0; }
+.tile:has(.spark) { justify-content: flex-start; }
+.spark-area { fill: color-mix(in srgb, var(--accent) 16%, transparent); }
+.spark-line { fill: none; stroke: var(--accent); stroke-width: 2; }
+.tile-empty .tile-empty-text { margin-bottom: auto; margin-top: 8px; }
+.tile-add { align-items: center; justify-content: center; border-style: dashed; color: var(--muted); font-weight: 600; }
+.tile-add-plus { font-size: 2rem; line-height: 1; color: var(--accent); }
+.rest-setting { color: var(--muted); }

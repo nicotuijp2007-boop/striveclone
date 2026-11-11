@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bestEst1RM, estimate1RM, exerciseHistory, weekReport, personalRecords, weekStreak, weeklySummary, workoutVolume } from "./stats";
+import { bestEst1RM, estimate1RM, exerciseHistory, trendOver, weekReport, personalRecords, weekStreak, weeklySummary, workoutVolume } from "./stats";
 import type { Workout } from "../types";
 
 const day = 864e5;
@@ -88,5 +88,18 @@ describe("weekReport", () => {
   it("counts hand-entered PRs from before this week as the bar to beat", () => {
     const ws = [mk(daysAgo(10), "bench", [[80, 5]]), mk(daysAgo(1), "bench", [[90, 5]])];
     expect(weekReport(ws, [{ id: "m", exerciseId: "bench", weight: 110, reps: 1, date: daysAgo(30) }], now).newPRs).toHaveLength(0);
+  });
+});
+
+describe("trendOver", () => {
+  const now = 100 * day;
+  it("uses only points in the window and reports the change from first to latest", () => {
+    const t = trendOver([{ t: now - 200 * day, v: 50 }, { t: now - 80 * day, v: 100 }, { t: now - 10 * day, v: 110 }], 90, now);
+    expect(t.series.map((p) => p.v)).toEqual([100, 110]);
+    expect(t).toMatchObject({ latest: 110, changePct: 10 });
+  });
+  it("has no change with a single point and nothing with none", () => {
+    expect(trendOver([{ t: now - day, v: 80 }], 90, now)).toMatchObject({ latest: 80, changePct: null });
+    expect(trendOver([], 90, now)).toMatchObject({ latest: null, changePct: null });
   });
 });

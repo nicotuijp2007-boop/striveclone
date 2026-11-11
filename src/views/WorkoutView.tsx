@@ -3,6 +3,7 @@ import { useApp, useNow } from "../context";
 import { ExercisePicker } from "../components/ExercisePicker";
 import { NumberField } from "../components/NumberField";
 import { FormVideoSheet } from "../components/FormVideoSheet";
+import { RestSettingsSheet } from "../components/RestSettingsSheet";
 import { bestEst1RM, completedSetCount, estimate1RM, formatKg, weekStreak, workoutVolume } from "../lib/stats";
 import { formatClock } from "../lib/audio";
 
@@ -64,6 +65,7 @@ function ActiveWorkout() {
   const [picking, setPicking] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [videoFor, setVideoFor] = useState<string | null>(null);
+  const [restSettings, setRestSettings] = useState(false);
 
   useEffect(() => {
     if (!toast) return;
@@ -100,6 +102,9 @@ function ActiveWorkout() {
           <span>⏱ {formatClock((now - w.startedAt) / 1000)}</span>
           <span>{completedSetCount(w)} sets</span>
           <span>{formatKg(workoutVolume(w))}</span>
+          <button className="btn ghost sm rest-setting" onClick={() => setRestSettings(true)} aria-label="Rest timer settings">
+            ⏱ Rest {state.settings.autoRest ? formatClock(state.settings.restSeconds) : "off"}
+          </button>
         </div>
       </div>
 
@@ -158,6 +163,7 @@ function ActiveWorkout() {
         <button className="btn primary grow" onClick={finish}>Finish workout</button>
       </div>
 
+      {restSettings && <RestSettingsSheet onClose={() => setRestSettings(false)} />}
       {videoFor && <FormVideoSheet exerciseId={videoFor} onClose={() => setVideoFor(null)} />}
 
       {toast && <div className="toast" role="status" onClick={() => setToast(null)}>{toast}</div>}

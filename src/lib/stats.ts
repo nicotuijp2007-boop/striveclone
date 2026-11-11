@@ -233,3 +233,28 @@ export function weekReport(workouts: Workout[], manual: ManualPR[], now = Date.n
   }
   return { thisWeek: totals(thisWeek), lastWeek: totals(lastWeek), newPRs: [...prs.values()].sort((a, b) => b.date - a.date) };
 }
+
+export interface Trend {
+  /** Values oldest first, within the window. */
+  series: { t: number; v: number }[];
+  latest: number | null;
+  /** Change from the first to the latest value in the window, in percent; null with fewer than 2 values. */
+  changePct: number | null;
+}
+
+/** Trend of a series over the last `days` days. */
+export function trendOver(points: { t: number; v: number }[], days: number, now = Date.now()): Trend {
+  const from = now - days * 864e5;
+  const series = points.filter((p) => p.t >= from && p.t <= now).sort((a, b) => a.t - b.t);
+  if (series.length === 0) return { series, latest: null, changePct: null };
+  const first = series[0].v;
+  const latest = series[series.length - 1].v;
+  const changePct = series.length >= 2 && first > 0 ? Math.round(((latest - first) / first) * 1000) / 10 : null;
+  return { series, latest, changePct };
+}
+
+/** Best estimated 1RM per session for an exercise, including hand-entered PRs, as trend points. */
+export const e1rmPoints = (workouts: Workout[], manual: ManualPR[], exerciseId: string) => [
+  ...exerciseHistory(workouts, exerciseId).map((p) => ({ t: p.date, v: p.best1RM })),
+  ...manual.filter((m) => m.exerciseId === exerciseId).map((m) => ({ t: m.date, v: Math.round(estimate1RM(m.weight, m.reps) * 10) / 10 })),
+];
