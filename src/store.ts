@@ -1,5 +1,5 @@
 import type { AppState, Exercise, Routine, SetEntry, Settings, VideoRef, Workout } from "./types";
-import { DEFAULT_EXERCISES, DEFAULT_ROUTINES } from "./lib/exercises";
+import { DEFAULT_EXERCISES, DEFAULT_ROUTINES, migrateExercises } from "./lib/exercises";
 import { uid } from "./lib/id";
 import { mergeStates, tombstone, untombstone, type SyncedData } from "./sync/merge";
 
@@ -25,10 +25,7 @@ export const loadState = (): AppState => {
     if (!raw) return initialState();
     const parsed = JSON.parse(raw) as Partial<AppState>;
     const base = initialState();
-    // Built-in exercises added in later versions are missing from older saved lists.
-    const saved = parsed.exercises ?? base.exercises;
-    const exercises = [...saved, ...DEFAULT_EXERCISES.filter((d) => !saved.some((e) => e.id === d.id))];
-    return { ...base, ...parsed, exercises, settings: { ...base.settings, ...parsed.settings } };
+    return migrateExercises({ ...base, ...parsed, settings: { ...base.settings, ...parsed.settings } });
   } catch {
     return initialState();
   }
@@ -245,10 +242,11 @@ export function reducer(state: AppState, action: Action): AppState {
       const keep = new Set(itemKeys(next));
       const deleted = { ...next.deleted };
       for (const k of itemKeys(state)) if (!keep.has(k)) deleted[k] = Date.now();
-      return { ...next, deleted };
+      return migrateExercises({ ...next, deleted });
     }
     case "mergeRemote":
-      return mergeStates(state, action.remote);
+      // Another device may still use older muscle groups or exercises.
+      return migrateExercises(mergeStates(state, action.remote));
     case "reset":
       return initialState();
   }

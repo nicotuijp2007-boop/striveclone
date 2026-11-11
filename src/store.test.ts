@@ -61,15 +61,58 @@ describe("tracked PRs", () => {
 });
 
 describe("loading saved data", () => {
-  it("adds built-in exercises introduced after the data was saved", () => {
-    const old = { ...initialState(), exercises: initialState().exercises.filter((e) => !e.id.includes("preacher")) };
-    old.exercises.push({ id: "custom-1", name: "My Curl", muscle: "Arms", custom: true });
-    const store = new Map([[STORAGE_KEY, JSON.stringify(old)]]);
+  const load = (saved: unknown) => {
+    const store = new Map([[STORAGE_KEY, JSON.stringify(saved)]]);
     (globalThis as any).localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: () => {} };
-    const ids = loadState().exercises.map((e) => e.id);
+    return loadState();
+  };
+  // Data as an older version saved it: old muscle groups, no preacher curls, burpee and rowing built in.
+  const old = () => ({
+    ...initialState(),
+    exercises: [
+      ...initialState().exercises.filter((e) => !e.id.includes("preacher")).map((e) =>
+        ["curl", "tricep-pushdown"].includes(e.id) ? { ...e, muscle: "Arms" } : e.id === "kb-swing" ? { ...e, muscle: "Full body" } : e),
+      { id: "burpee", name: "Burpee", muscle: "Full body" },
+      { id: "row-erg", name: "Rowing (calories as reps)", muscle: "Cardio" },
+      { id: "custom-1", name: "Cable Curl", muscle: "Arms", custom: true },
+      { id: "custom-2", name: "Skull Crusher", muscle: "Arms", custom: true },
+      { id: "custom-3", name: "Sled Push", muscle: "Cardio", custom: true },
+    ],
+    workouts: [{ id: "w", name: "w", startedAt: 1, finishedAt: 2,
+      exercises: [{ id: "we", exerciseId: "row-erg", sets: [{ id: "s", reps: 20, weight: 0, done: true }] }] }],
+  });
+
+  it("adds built-in exercises introduced after the data was saved", () => {
+    const ids = load(old()).exercises.map((e) => e.id);
     expect(ids).toContain("preacher-curl");
     expect(ids).toContain("db-preacher-curl");
     expect(ids).toContain("custom-1");
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("moves exercises to the current muscle groups", () => {
+    const muscle = (id: string) => load(old()).exercises.find((e) => e.id === id)?.muscle;
+    expect(muscle("curl")).toBe("Biceps");
+    expect(muscle("tricep-pushdown")).toBe("Triceps");
+    expect(muscle("kb-swing")).toBe("Legs");
+    expect(muscle("custom-1")).toBe("Biceps");
+    expect(muscle("custom-2")).toBe("Triceps");
+    expect(muscle("custom-3")).toBe("Legs");
+    const groups = new Set(load(old()).exercises.map((e) => e.muscle));
+    expect([...groups].sort()).toEqual(["Back", "Biceps", "Chest", "Core", "Legs", "Shoulders", "Triceps"]);
+  });
+
+  it("removes retired exercises that were never used, and keeps ones that were", () => {
+    const s = load(old());
+    expect(s.exercises.find((e) => e.id === "burpee")).toBeUndefined();
+    expect(s.deleted["exercise:burpee"]).toBeGreaterThan(0);
+    expect(s.exercises.find((e) => e.id === "row-erg")?.muscle).toBe("Legs");
+  });
+
+  it("migrates data merged in from a device still on the old version", () => {
+    const merged = reducer(initialState(), { type: "mergeRemote", remote: old() as never });
+    expect(merged.exercises.find((e) => e.id === "curl")?.muscle).toBe("Biceps");
+    expect(merged.exercises.find((e) => e.id === "burpee")).toBeUndefined();
+    expect(merged.exercises.find((e) => e.id === "row-erg")).toBeDefined(); // used in a merged workout
   });
 });

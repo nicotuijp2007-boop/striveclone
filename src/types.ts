@@ -1,5 +1,4 @@
-export type Muscle =
-  | "Chest" | "Back" | "Legs" | "Shoulders" | "Arms" | "Core" | "Full body" | "Cardio";
+export type Muscle = "Chest" | "Back" | "Legs" | "Shoulders" | "Biceps" | "Triceps" | "Core";
 
 export interface Exercise {
   id: string;

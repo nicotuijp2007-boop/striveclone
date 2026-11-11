@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
 import { useApp } from "../context";
 import type { Muscle } from "../types";
-
-const MUSCLES: Muscle[] = ["Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Full body", "Cardio"];
+import { MUSCLES } from "../lib/exercises";
 
 // On phones, opening the keyboard straight away hides most of the list; let people browse first.
 const touchScreen = typeof matchMedia !== "undefined" && matchMedia("(pointer: coarse)").matches;
