@@ -110,9 +110,18 @@ export function videoFor(state: Pick<AppState, "videoChoices">, exerciseId: stri
   return def ? { video: { id: def.id, start: def.start, end: def.end }, channel: def.channel, source: "default", hasDefault } : { video: null, source: "none", hasDefault };
 }
 
-/** Privacy-enhanced embed: no YouTube cookies until the viewer presses play. */
-export const embedUrl = (v: VideoRef): string =>
-  `https://www.youtube-nocookie.com/embed/${v.id}?rel=0&playsinline=1${v.start ? `&start=${v.start}` : ""}${v.end ? `&end=${v.end}` : ""}`;
+/**
+ * Privacy-enhanced embed that starts playing right away (the sheet opens from a tap, so browsers
+ * allow it). iPhones and iPads only allow autoplay without sound, so there it starts muted.
+ */
+export const embedUrl = (v: VideoRef, opts: { muted?: boolean } = {}): string =>
+  `https://www.youtube-nocookie.com/embed/${v.id}?rel=0&playsinline=1&autoplay=1${opts.muted ? "&mute=1" : ""}` +
+  `${v.start ? `&start=${v.start}` : ""}${v.end ? `&end=${v.end}` : ""}`;
+
+/** iOS (including iPadOS, which reports itself as a Mac with touch) blocks autoplay with sound. */
+export const autoplayNeedsMute = (): boolean =>
+  typeof navigator !== "undefined" &&
+  (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
 
 export const watchUrl = (v: VideoRef): string =>
   `https://www.youtube.com/watch?v=${v.id}${v.start ? `&t=${v.start}s` : ""}`;

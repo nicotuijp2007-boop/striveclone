@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useApp } from "../context";
-import { embedUrl, parseYouTube, videoFor, watchUrl } from "../lib/video";
+import { autoplayNeedsMute, embedUrl, parseYouTube, videoFor, watchUrl } from "../lib/video";
 
 /** Plays an exercise's form video and lets the user swap, remove or restore it. */
 export function FormVideoSheet({ exerciseId, onClose }: { exerciseId: string; onClose: () => void }) {
@@ -37,7 +37,7 @@ export function FormVideoSheet({ exerciseId, onClose }: { exerciseId: string; on
               <div className="video-frame">
                 <iframe
                   key={video.id}
-                  src={embedUrl(video)}
+                  src={embedUrl(video, { muted: autoplayNeedsMute() })}
                   title={`${name} form video`}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   referrerPolicy="strict-origin-when-cross-origin"

@@ -46,9 +46,10 @@ describe("form video choice", () => {
     expect(videoFor(mergeStates(laptop, phone), "bench").source).toBe("none");
   });
 
-  it("embeds without YouTube cookies, starting and stopping at the chosen seconds", () => {
-    expect(embedUrl({ id: "gRVjAtPip0Y", start: 30 })).toBe("https://www.youtube-nocookie.com/embed/gRVjAtPip0Y?rel=0&playsinline=1&start=30");
-    expect(embedUrl({ id: "gRVjAtPip0Y", start: 30, end: 60 })).toBe("https://www.youtube-nocookie.com/embed/gRVjAtPip0Y?rel=0&playsinline=1&start=30&end=60");
+  it("embeds without YouTube cookies, autoplaying between the chosen seconds", () => {
+    expect(embedUrl({ id: "gRVjAtPip0Y", start: 30 })).toBe("https://www.youtube-nocookie.com/embed/gRVjAtPip0Y?rel=0&playsinline=1&autoplay=1&start=30");
+    expect(embedUrl({ id: "gRVjAtPip0Y", start: 30, end: 60 })).toBe("https://www.youtube-nocookie.com/embed/gRVjAtPip0Y?rel=0&playsinline=1&autoplay=1&start=30&end=60");
+    expect(embedUrl({ id: "gRVjAtPip0Y" }, { muted: true })).toBe("https://www.youtube-nocookie.com/embed/gRVjAtPip0Y?rel=0&playsinline=1&autoplay=1&mute=1");
   });
 
   it("gives every default with an end time an end after its start", () => {
