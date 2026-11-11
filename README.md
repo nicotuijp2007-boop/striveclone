@@ -63,7 +63,7 @@ src/
   context.tsx       React provider, rest-timer state
   lib/              stats, interval-timer maths, audio, default exercises
   components/       exercise picker, rest bar, numeric input
-  views/            Workout, Routines, History, Progress, Timers
+  views/            Home, Workout, Routines, History, Progress
 public/             manifest, service worker, icon
 supabase/           database migration
 ```
