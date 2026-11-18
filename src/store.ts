@@ -1,6 +1,7 @@
 import type { AppState, Exercise, Routine, SetEntry, Settings, VideoRef, Workout } from "./types";
 import { DEFAULT_EXERCISES, DEFAULT_ROUTINES, migrateExercises } from "./lib/exercises";
 import { uid } from "./lib/id";
+import { defaultSettings, normalizeSettings } from "./lib/settings";
 import { mergeStates, tombstone, untombstone, type SyncedData } from "./sync/merge";
 
 export const STORAGE_KEY = "liftlog:v1";
@@ -16,7 +17,7 @@ export const initialState = (): AppState => ({
   manualPRs: [],
   videoChoices: [],
   deleted: {},
-  settings: { restSeconds: 90, autoRest: true },
+  settings: defaultSettings(),
 });
 
 export const loadState = (): AppState => {
@@ -25,7 +26,7 @@ export const loadState = (): AppState => {
     if (!raw) return initialState();
     const parsed = JSON.parse(raw) as Partial<AppState>;
     const base = initialState();
-    return migrateExercises({ ...base, ...parsed, settings: { ...base.settings, ...parsed.settings } });
+    return migrateExercises({ ...base, ...parsed, settings: normalizeSettings(parsed.settings) });
   } catch {
     return initialState();
   }
@@ -62,7 +63,7 @@ export type Action =
   | { type: "addManualPR"; exerciseId: string; weight: number; reps: number; date: number }
   | { type: "deleteManualPR"; id: string }
   | { type: "setExerciseVideo"; exerciseId: string; video: VideoRef | null | "default"; now?: number }
-  | { type: "updateSettings"; patch: Partial<Settings> }
+  | { type: "updateSettings"; patch: Partial<Omit<Settings, "updatedAt">>; now?: number }
   | { type: "importState"; state: AppState }
   /** Combine data pulled from the cloud into the current state. */
   | { type: "mergeRemote"; remote: Partial<SyncedData> }
@@ -124,7 +125,7 @@ export function reducer(state: AppState, action: Action): AppState {
     case "renameWorkout":
       return mapActive(state, (w) => ({ ...w, name: action.name }));
     case "addExerciseToWorkout": {
-      const prev = lastPerformance(state, action.exerciseId);
+      const prev = state.settings.prefillSets ? lastPerformance(state, action.exerciseId) : undefined;
       const sets = prev ? prev.map((s) => newSet(s.reps, s.weight)) : [newSet(8, 0)];
       return mapActive(state, (w) => ({
         ...w,
@@ -235,10 +236,14 @@ export function reducer(state: AppState, action: Action): AppState {
         ],
       };
     case "updateSettings":
-      return { ...state, settings: { ...state.settings, ...action.patch } };
+      return { ...state, settings: { ...state.settings, ...action.patch, updatedAt: action.now ?? Date.now() } };
     case "importState": {
       // Mark everything not in the backup as deleted, so a signed-in sync doesn't merge it back.
-      const next: AppState = { ...initialState(), ...action.state, active: state.active };
+      // The backup's settings count as a fresh change, so they win over other devices' settings.
+      const next: AppState = {
+        ...initialState(), ...action.state, active: state.active,
+        settings: { ...normalizeSettings(action.state.settings), updatedAt: Date.now() },
+      };
       const keep = new Set(itemKeys(next));
       const deleted = { ...next.deleted };
       for (const k of itemKeys(state)) if (!keep.has(k)) deleted[k] = Date.now();

@@ -16,40 +16,35 @@ const ago = (t: number) => {
   return s < 60 ? "just now" : s < 3600 ? `${Math.floor(s / 60)} min ago` : new Date(t).toLocaleTimeString();
 };
 
-/** Header button showing sync state; opens the account sheet. */
-export function SyncButton({ onClick }: { onClick: () => void }) {
+/** Header button that opens Settings. A dot shows sync trouble or a sync in progress. */
+export function SettingsButton({ onClick, open }: { onClick: () => void; open: boolean }) {
   const { cloud } = useApp();
-  const label = cloud.email ? STATUS_TEXT[cloud.status] : "Account and sync";
+  const trouble = !!cloud.email && (cloud.status === "error" || cloud.status === "offline");
+  const label = cloud.email ? `Settings · ${STATUS_TEXT[cloud.status]}` : "Settings";
   return (
-    <button className={`sync-btn st-${cloud.email ? cloud.status : "signed-out"}`} onClick={onClick} aria-label={label} title={label}>
+    <button className={`gear-btn ${open ? "on" : ""}`} onClick={onClick} aria-label={label} title={label} aria-pressed={open}>
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M7 18a4.5 4.5 0 0 1-.5-9A6 6 0 0 1 18 8a4 4 0 0 1-.5 10z" />
-        {cloud.email && cloud.status === "synced" && <path d="M9.5 13l2 2 3.5-3.5" />}
-        {cloud.email && (cloud.status === "error" || cloud.status === "offline") && <path d="M12 10.5v3M12 16v.01" />}
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
       </svg>
-      {cloud.status === "syncing" && <span className="sync-dot" />}
+      {trouble && <span className="gear-dot st-error" />}
+      {cloud.email && cloud.status === "syncing" && <span className="gear-dot st-syncing" />}
     </button>
   );
 }
 
-export function AccountSheet({ onClose }: { onClose: () => void }) {
+/** Sign in, sign out and sync status, shown at the top of Settings. */
+export function AccountSection() {
   const { cloud } = useApp();
-  return (
-    <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet" role="dialog" aria-label="Account and sync" onClick={(e) => e.stopPropagation()}>
-        <div className="sheet-head">
-          <h2>Account &amp; sync</h2>
-          <button className="btn ghost" onClick={onClose}>Close</button>
-        </div>
-        {!cloud.configured ? (
-          <p className="muted">
-            Cloud sync isn't set up for this copy of the app, so your data is saved on this device only. Use Export on the
-            History tab to back it up.
-          </p>
-        ) : cloud.email ? <SignedIn /> : <SignInForm />}
-      </div>
-    </div>
-  );
+  if (!cloud.configured) {
+    return (
+      <p className="muted small">
+        Cloud sync isn't set up for this copy of the app, so your data is saved on this device only. Use Export under
+        Backup below to keep a copy.
+      </p>
+    );
+  }
+  return cloud.email ? <SignedIn /> : <SignInForm />;
 }
 
 function SignedIn() {
@@ -57,7 +52,7 @@ function SignedIn() {
   const [busy, setBusy] = useState(false);
   return (
     <div className="stack">
-      <div className="card">
+      <div className="inset">
         <span className="muted small">Signed in as</span>
         <strong>{cloud.email}</strong>
         <div className={`sync-line st-${cloud.status}`}>

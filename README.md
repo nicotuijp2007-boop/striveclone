@@ -11,8 +11,10 @@ A mobile-first fitness tracker built as an installable web app (PWA). Data is al
 - **Tracked PRs**: choose the lifts you care about, set an optional goal (estimated 1RM), and enter PRs set before you used the app. Ticking a set that beats a tracked PR shows a "New PR!" alert.
 - **Progress**: a heatmap of training days over the last 36 weeks (brighter = more volume), a Mon–Sun check row for this week (×N for multiple sessions), estimated 1RM trend per exercise (Epley), personal records, and a body-weight log with a chart.
 - **Form videos**: a ▶ Form button on each exercise in a workout plays a YouTube form tutorial (privacy-enhanced embed). All built-in exercises have a checked default, mostly Jeff Nippard videos (TNF for pull-ups and lat pulldowns) that start at the chapter for that exercise; you can paste your own link, remove it, or go back to the default. Choices sync across devices.
-- **Rest timer**: starts automatically when you tick off a set and stays visible on every tab; set its length with the ⏱ button in a workout.
-- **History**: past workouts with duration and volume, plus JSON export and import for backups.
+- **Rest timer**: starts automatically when you tick off a set and stays visible on every tab. Turn it off, change its length, auto-start, sound and vibration in Settings.
+- **Settings** (gear, top right): account and sync, rest timer, theme (System / Light / Dark), keep the screen on during a workout, weight steps for the − / + buttons (2.5, 1.25 or 1 kg), whether new sets copy last time's weight and reps, and JSON export and import for backups. Settings sync across devices; the most recent change wins.
+- **Dashboard editing**: tap Edit on Home to show, hide and reorder tiles and pick the chart period (1, 3, 6 or 12 months), then Done to save.
+- **History**: past workouts with duration and volume.
 - Works offline once loaded, and can be installed to the home screen.
 
 ## Cloud sync (Supabase)
@@ -61,9 +63,9 @@ src/
   store.ts          reducer + localStorage persistence (pure, unit-tested)
   sync/             Supabase client, sync engine, merge logic (unit-tested with a fake cloud)
   context.tsx       React provider, rest-timer state
-  lib/              stats, interval-timer maths, audio, default exercises
+  lib/              stats, audio, default exercises and settings, dashboard layout, theme and wake lock
   components/       exercise picker, rest bar, numeric input
-  views/            Home, Workout, Routines, History, Progress
+  views/            Home, Workout, Routines, History, Progress, Settings
 public/             manifest, service worker, icon
 supabase/           database migration
 ```

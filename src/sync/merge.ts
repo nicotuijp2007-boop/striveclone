@@ -1,4 +1,5 @@
-import type { AppState } from "../types";
+import type { AppState, Settings } from "../types";
+import { normalizeSettings } from "../lib/settings";
 
 /** The part of the app state that is stored in the cloud. The in-progress workout stays on the device. */
 export type SyncedData = Omit<AppState, "active">;
@@ -51,7 +52,8 @@ function latestBy<T extends { at: number }>(local: T[], remote: T[], key: (t: T)
 
 /**
  * Combine this device's state with the cloud copy. Lists are merged by id, the latest delete or
- * re-add wins, and settings and the in-progress workout come from this device.
+ * re-add wins, settings come from whichever device changed them last, and the in-progress
+ * workout stays on this device.
  */
 export function mergeStates(local: AppState, remote: Partial<SyncedData>): AppState {
   const deleted = mergeMarkers(local.deleted, remote.deleted ?? {});
@@ -66,6 +68,13 @@ export function mergeStates(local: AppState, remote: Partial<SyncedData>): AppSt
     trackedPRs: merge(local.trackedPRs, remote.trackedPRs, (t) => `tracked:${t.exerciseId}`),
     manualPRs: merge(local.manualPRs, remote.manualPRs, (m) => `manualPR:${m.id}`),
     videoChoices: latestBy(local.videoChoices, remote.videoChoices ?? [], (c) => c.exerciseId),
+    settings: latestSettings(local.settings, remote.settings),
     deleted,
   };
+}
+
+/** The most recently changed settings; on a tie (or old cloud data without a time) this device's. */
+function latestSettings(local: Settings, remote: Partial<Settings> | undefined): Settings {
+  if (!remote || (remote.updatedAt ?? 0) <= local.updatedAt) return local;
+  return normalizeSettings(remote);
 }

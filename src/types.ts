@@ -76,9 +76,33 @@ export interface VideoChoice {
   at: number; // when chosen; the latest choice wins when devices sync
 }
 
+export type ThemeMode = "system" | "light" | "dark";
+export type WeightStep = 2.5 | 1.25 | 1;
+export type DashboardMonths = 1 | 3 | 6 | 12;
+
+/** Home dashboard layout. Tile ids: "week", "bodyweight", "lift:<exerciseId>". */
+export interface DashboardLayout {
+  order: string[]; // tiles not listed here (e.g. a newly tracked lift) go after these
+  hidden: string[];
+  months: DashboardMonths;
+}
+
 export interface Settings {
+  /** Off: the rest timer never starts by itself, and the rest bar and workout button are hidden. */
+  restEnabled: boolean;
   restSeconds: number;
   autoRest: boolean;
+  restSound: boolean;
+  restVibrate: boolean;
+  theme: ThemeMode;
+  /** Keep the screen on during a workout (Wake Lock API, where supported). */
+  keepAwake: boolean;
+  weightStep: WeightStep;
+  /** New sets copy weight and reps from the last time the exercise was done. */
+  prefillSets: boolean;
+  dashboard: DashboardLayout;
+  /** When the settings last changed; the latest change wins when devices sync. 0 = never changed. */
+  updatedAt: number;
 }
 
 export interface AppState {

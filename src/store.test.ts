@@ -116,3 +116,59 @@ describe("loading saved data", () => {
     expect(merged.exercises.find((e) => e.id === "row-erg")).toBeDefined(); // used in a merged workout
   });
 });
+
+describe("settings", () => {
+  const load = (saved: unknown) => {
+    const store = new Map([[STORAGE_KEY, JSON.stringify(saved)]]);
+    (globalThis as any).localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: () => {} };
+    return loadState();
+  };
+
+  it("fills in new settings with defaults for data saved by an older version", () => {
+    const s = load({ ...initialState(), settings: { restSeconds: 120, autoRest: false } });
+    expect(s.settings).toMatchObject({
+      restSeconds: 120, autoRest: false, restEnabled: true, restSound: true, restVibrate: true, theme: "system",
+      keepAwake: true, weightStep: 2.5, prefillSets: true, dashboard: { order: [], hidden: [], months: 3 }, updatedAt: 0,
+    });
+  });
+
+  it("keeps saved dashboard choices and fills in missing parts", () => {
+    const s = load({ ...initialState(), settings: { theme: "light", dashboard: { hidden: ["week"] } } });
+    expect(s.settings.theme).toBe("light");
+    expect(s.settings.dashboard).toEqual({ order: [], hidden: ["week"], months: 3 });
+  });
+
+  it("records when settings change", () => {
+    const s = reducer(initialState(), { type: "updateSettings", patch: { theme: "dark" }, now: 42 });
+    expect(s.settings).toMatchObject({ theme: "dark", updatedAt: 42, restSeconds: 90 });
+  });
+
+  it("starts with an empty set instead of last time's when prefilling is off", () => {
+    let s = reducer(initialState(), { type: "startWorkout" });
+    s = reducer(s, { type: "addExerciseToWorkout", exerciseId: "curl" });
+    const we = s.active!.exercises[0];
+    s = reducer(s, { type: "updateSet", workoutExerciseId: we.id, setId: we.sets[0].id, patch: { done: true, weight: 30, reps: 10 } });
+    s = reducer(s, { type: "addSet", workoutExerciseId: we.id });
+    s = reducer(s, { type: "finishWorkout" });
+    s = reducer(s, { type: "updateSettings", patch: { prefillSets: false } });
+    s = reducer(s, { type: "startWorkout" });
+    s = reducer(s, { type: "addExerciseToWorkout", exerciseId: "curl" });
+    expect(s.active!.exercises[0].sets).toEqual([expect.objectContaining({ weight: 0, reps: 8, done: false })]);
+  });
+
+  it("takes the most recently changed settings when merging with the cloud", () => {
+    const local = reducer(initialState(), { type: "updateSettings", patch: { theme: "dark" }, now: 100 });
+    const newer = reducer(initialState(), { type: "updateSettings", patch: { theme: "light", weightStep: 1 }, now: 200 }).settings;
+    expect(reducer(local, { type: "mergeRemote", remote: { settings: newer } }).settings).toMatchObject({ theme: "light", weightStep: 1 });
+    const older = { ...newer, updatedAt: 50 };
+    expect(reducer(local, { type: "mergeRemote", remote: { settings: older } }).settings.theme).toBe("dark");
+    // Cloud data from an older version has no settings time: this device's settings stay.
+    expect(reducer(local, { type: "mergeRemote", remote: { settings: { restSeconds: 30, autoRest: true } as never } }).settings.theme).toBe("dark");
+  });
+
+  it("gives a new device the account's settings, with defaults for anything missing", () => {
+    const remote = { theme: "light", updatedAt: 5 } as never;
+    const s = reducer(initialState(), { type: "mergeRemote", remote: { settings: remote } });
+    expect(s.settings).toMatchObject({ theme: "light", restSeconds: 90, dashboard: { months: 3 } });
+  });
+});

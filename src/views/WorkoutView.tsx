@@ -3,13 +3,12 @@ import { useApp, useNow } from "../context";
 import { ExercisePicker } from "../components/ExercisePicker";
 import { NumberField } from "../components/NumberField";
 import { FormVideoSheet } from "../components/FormVideoSheet";
-import { RestSettingsSheet } from "../components/RestSettingsSheet";
 import { bestEst1RM, completedSetCount, estimate1RM, formatKg, weekStreak, workoutVolume } from "../lib/stats";
-import { formatClock } from "../lib/audio";
+import { formatClock, unlockAudio } from "../lib/audio";
 
-export function WorkoutView({ goTo }: { goTo: (tab: "routines") => void }) {
+export function WorkoutView({ goTo, openSettings }: { goTo: (tab: "routines") => void; openSettings: () => void }) {
   const { state } = useApp();
-  return state.active ? <ActiveWorkout /> : <StartScreen goTo={goTo} />;
+  return state.active ? <ActiveWorkout openSettings={openSettings} /> : <StartScreen goTo={goTo} />;
 }
 
 function StartScreen({ goTo }: { goTo: (tab: "routines") => void }) {
@@ -58,14 +57,14 @@ function Stat({ label, value, unit }: { label: string; value: string; unit: stri
   );
 }
 
-function ActiveWorkout() {
+function ActiveWorkout({ openSettings }: { openSettings: () => void }) {
   const { state, dispatch, exerciseById, rest } = useApp();
   const w = state.active!;
   const now = useNow(true, 1000);
   const [picking, setPicking] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [videoFor, setVideoFor] = useState<string | null>(null);
-  const [restSettings, setRestSettings] = useState(false);
+  const { restEnabled, autoRest, restSeconds, restSound, weightStep } = state.settings;
 
   useEffect(() => {
     if (!toast) return;
@@ -102,9 +101,15 @@ function ActiveWorkout() {
           <span>⏱ {formatClock((now - w.startedAt) / 1000)}</span>
           <span>{completedSetCount(w)} sets</span>
           <span>{formatKg(workoutVolume(w))}</span>
-          <button className="btn ghost sm rest-setting" onClick={() => setRestSettings(true)} aria-label="Rest timer settings">
-            ⏱ Rest {state.settings.autoRest ? formatClock(state.settings.restSeconds) : "off"}
-          </button>
+          {restEnabled && (
+            <span className="row tight rest-setting">
+              <button className="btn ghost sm" onClick={() => { unlockAudio(); rest.start(restSeconds); }}
+                aria-label={`Start ${formatClock(restSeconds)} rest now`}>
+                ⏱ Rest {formatClock(restSeconds)}
+              </button>
+              <button className="btn ghost sm" onClick={openSettings} aria-label="Rest timer settings">⚙</button>
+            </span>
+          )}
         </div>
       </div>
 
@@ -128,7 +133,7 @@ function ActiveWorkout() {
               {we.sets.map((s, i) => (
                 <div key={s.id} className={`set-row ${s.done ? "done" : ""}`}>
                   <span className="set-num">{i + 1}</span>
-                  <NumberField label={`Set ${i + 1} weight`} value={s.weight} step={2.5}
+                  <WeightField label={`Set ${i + 1} weight`} value={s.weight} step={weightStep}
                     onChange={(n) => dispatch({ type: "updateSet", workoutExerciseId: we.id, setId: s.id, patch: { weight: n } })} />
                   <NumberField label={`Set ${i + 1} reps`} value={s.reps}
                     onChange={(n) => dispatch({ type: "updateSet", workoutExerciseId: we.id, setId: s.id, patch: { reps: Math.round(n) } })} />
@@ -140,7 +145,10 @@ function ActiveWorkout() {
                       dispatch({ type: "updateSet", workoutExerciseId: we.id, setId: s.id, patch: { done: !s.done } });
                       if (!s.done) {
                         checkPR(we.exerciseId, s.id, s.weight, s.reps);
-                        if (state.settings.autoRest) rest.start(state.settings.restSeconds);
+                        if (restEnabled && autoRest) {
+                          if (restSound) unlockAudio();
+                          rest.start(restSeconds);
+                        }
                       }
                     }}
                   >✓</button>
@@ -163,7 +171,6 @@ function ActiveWorkout() {
         <button className="btn primary grow" onClick={finish}>Finish workout</button>
       </div>
 
-      {restSettings && <RestSettingsSheet onClose={() => setRestSettings(false)} />}
       {videoFor && <FormVideoSheet exerciseId={videoFor} onClose={() => setVideoFor(null)} />}
 
       {toast && <div className="toast" role="status" onClick={() => setToast(null)}>{toast}</div>}
@@ -175,5 +182,21 @@ function ActiveWorkout() {
         />
       )}
     </section>
+  );
+}
+
+/** Weight input with − and + buttons that move it by the step chosen in Settings. */
+function WeightField({ value, onChange, step, label }: { value: number; onChange: (n: number) => void; step: number; label: string }) {
+  // Snap to the step grid first, so 61 with 2.5 steps goes to 62.5 / 60 rather than 63.5 / 58.5.
+  const move = (dir: 1 | -1) => {
+    const snapped = dir > 0 ? Math.floor(value / step + 1e-9) * step + step : Math.ceil(value / step - 1e-9) * step - step;
+    onChange(Math.max(0, Math.round(snapped * 100) / 100));
+  };
+  return (
+    <div className="weight-field">
+      <button type="button" className="step-btn" aria-label={`${label}: minus ${step} kg`} onClick={() => move(-1)}>−</button>
+      <NumberField label={label} value={value} step={step} onChange={onChange} />
+      <button type="button" className="step-btn" aria-label={`${label}: plus ${step} kg`} onClick={() => move(1)}>+</button>
+    </div>
   );
 }

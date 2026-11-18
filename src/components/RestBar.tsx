@@ -1,10 +1,11 @@
 import { useEffect, useRef } from "react";
 import { useApp, useNow } from "../context";
-import { beep, formatClock } from "../lib/audio";
+import { beep, formatClock, vibrate } from "../lib/audio";
 
 /** Floating rest countdown shown on every screen while a rest timer runs. */
 export function RestBar() {
-  const { rest } = useApp();
+  const { rest, state } = useApp();
+  const { restEnabled, restSound, restVibrate } = state.settings;
   const now = useNow(rest.endsAt !== null);
   const fired = useRef<number | null>(null);
   const remaining = rest.endsAt === null ? 0 : (rest.endsAt - now) / 1000;
@@ -12,13 +13,21 @@ export function RestBar() {
   useEffect(() => {
     if (rest.endsAt !== null && remaining <= 0 && fired.current !== rest.endsAt) {
       fired.current = rest.endsAt;
-      beep(988, 250);
-      setTimeout(() => beep(1318, 350), 280);
+      if (restSound) {
+        beep(988, 250);
+        setTimeout(() => beep(1318, 350), 280);
+      }
+      if (restVibrate) vibrate([150, 100, 150]);
       rest.stop();
     }
-  }, [remaining, rest]);
+  }, [remaining, rest, restSound, restVibrate]);
 
-  if (rest.endsAt === null) return null;
+  // Turning the timer off in Settings also stops one that is running.
+  useEffect(() => {
+    if (!restEnabled && rest.endsAt !== null) rest.stop();
+  }, [restEnabled, rest]);
+
+  if (rest.endsAt === null || !restEnabled) return null;
   const pct = rest.total > 0 ? Math.min(100, Math.max(0, (1 - remaining / rest.total) * 100)) : 0;
 
   return (

@@ -1,7 +1,9 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useApp } from "./context";
 import { RestBar } from "./components/RestBar";
-import { AccountSheet, SyncButton } from "./components/AccountSheet";
+import { SettingsButton } from "./components/AccountSection";
+import { SettingsView } from "./views/SettingsView";
+import { useTheme, useWakeLock } from "./lib/device";
 import { WorkoutView } from "./views/WorkoutView";
 import { RoutinesView } from "./views/RoutinesView";
 import { HistoryView } from "./views/HistoryView";
@@ -23,33 +25,44 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
 export default function App() {
   const { state } = useApp();
   const [tab, setTab] = useState<Tab>("home");
-  const [account, setAccount] = useState(false);
+  const [settings, setSettings] = useState(false);
+  useTheme(state.settings.theme);
+  useWakeLock(!!state.active && state.settings.keepAwake);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [settings]);
+
+  const go = (t: Tab) => {
+    setSettings(false);
+    setTab(t);
+  };
 
   return (
     <div className="app">
       <header className="top">
         <span className="brand">Liftlog</span>
-        {state.active && tab !== "workout" && (
-          <button className="pill" onClick={() => setTab("workout")}>● Workout in progress</button>
+        {state.active && (tab !== "workout" || settings) && (
+          <button className="pill" onClick={() => go("workout")}>● Workout in progress</button>
         )}
-        <SyncButton onClick={() => setAccount(true)} />
+        <SettingsButton open={settings} onClick={() => setSettings(!settings)} />
       </header>
       <main>
-        {tab === "home" && <HomeView goTo={setTab} />}
-        {tab === "workout" && <WorkoutView goTo={setTab} />}
-        {tab === "routines" && <RoutinesView onStarted={() => setTab("workout")} />}
-        {tab === "history" && <HistoryView />}
-        {tab === "progress" && (
+        {settings && <SettingsView onClose={() => setSettings(false)} />}
+        {!settings && tab === "home" && <HomeView goTo={go} />}
+        {!settings && tab === "workout" && <WorkoutView goTo={go} openSettings={() => setSettings(true)} />}
+        {!settings && tab === "routines" && <RoutinesView onStarted={() => go("workout")} />}
+        {!settings && tab === "history" && <HistoryView />}
+        {!settings && tab === "progress" && (
           <Suspense fallback={<p className="muted">Loading charts…</p>}>
             <ProgressView />
           </Suspense>
         )}
       </main>
       <RestBar />
-      {account && <AccountSheet onClose={() => setAccount(false)} />}
       <nav className="tabs">
         {TABS.map((t) => (
-          <button key={t.id} className={tab === t.id ? "on" : ""} onClick={() => setTab(t.id)} aria-current={tab === t.id ? "page" : undefined}>
+          <button key={t.id} className={!settings && tab === t.id ? "on" : ""} onClick={() => go(t.id)} aria-current={!settings && tab === t.id ? "page" : undefined}>
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d={t.icon} />
             </svg>
