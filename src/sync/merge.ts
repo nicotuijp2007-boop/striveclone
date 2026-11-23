@@ -1,4 +1,5 @@
-import type { AppState } from "../types";
+import type { AppState, Settings } from "../types";
+import { normalizeSettings } from "../lib/settings";
 
 /** The part of the app state that is stored in the cloud. The in-progress workout stays on the device. */
 export type SyncedData = Omit<AppState, "active">;
@@ -49,9 +50,21 @@ function newestBy<T extends { updatedAt: number }>(local: T[], remote: T[] | und
   return [...out.values()];
 }
 
+/** One entry per key, keeping whichever side chose most recently (`at`); ties keep the local one. */
+function latestBy<T extends { at: number }>(local: T[], remote: T[], key: (t: T) => string): T[] {
+  const out = new Map<string, T>();
+  for (const r of remote) out.set(key(r), r);
+  for (const l of local) {
+    const r = out.get(key(l));
+    if (!r || l.at >= r.at) out.set(key(l), l);
+  }
+  return [...out.values()];
+}
+
 /**
  * Combine this device's state with the cloud copy. Lists are merged by id, the latest delete or
- * re-add wins, and settings and the in-progress workout come from this device.
+ * re-add wins, settings come from whichever device changed them last, and the in-progress
+ * workout stays on this device.
  */
 export function mergeStates(local: AppState, remote: Partial<SyncedData>): AppState {
   const deleted = mergeMarkers(local.deleted, remote.deleted ?? {});
@@ -67,6 +80,14 @@ export function mergeStates(local: AppState, remote: Partial<SyncedData>): AppSt
     manualPRs: merge(local.manualPRs, remote.manualPRs, (m) => `manualPR:${m.id}`),
     progression: newestBy(local.progression, remote.progression, (p) => p.exerciseId),
     advice: newestBy(local.advice, remote.advice, (a) => a.exerciseId),
+    videoChoices: latestBy(local.videoChoices, remote.videoChoices ?? [], (c) => c.exerciseId),
+    settings: latestSettings(local.settings, remote.settings),
     deleted,
   };
+}
+
+/** The most recently changed settings; on a tie (or old cloud data without a time) this device's. */
+function latestSettings(local: Settings, remote: Partial<Settings> | undefined): Settings {
+  if (!remote || (remote.updatedAt ?? 0) <= local.updatedAt) return local;
+  return normalizeSettings(remote);
 }

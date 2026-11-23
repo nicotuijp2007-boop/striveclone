@@ -1,8 +1,8 @@
 // Minimal offline support: network-first for navigations, cache-first for assets.
-const CACHE = "liftlog-v1";
+const CACHE = "liftlog-v2";
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(["/", "/icon.svg", "/manifest.webmanifest"])));
+  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(["/", "/icon.svg", "/apple-touch-icon.png", "/icon-192.png", "/manifest.webmanifest"])));
   self.skipWaiting();
 });
 

@@ -1,5 +1,4 @@
-export type Muscle =
-  | "Chest" | "Back" | "Legs" | "Shoulders" | "Arms" | "Core" | "Full body" | "Cardio";
+export type Muscle = "Chest" | "Back" | "Legs" | "Shoulders" | "Biceps" | "Triceps" | "Core";
 
 export interface Exercise {
   id: string;
@@ -101,9 +100,45 @@ export interface OverloadAdvice {
   updatedAt: number;
 }
 
+/** A YouTube video, optionally starting part-way in. */
+export interface VideoRef {
+  id: string;
+  start?: number; // seconds
+  end?: number; // seconds; the player stops here
+}
+
+/** The user's choice of form video for an exercise: their own link, none, or back to the default. */
+export interface VideoChoice {
+  exerciseId: string;
+  video: VideoRef | null | "default";
+  at: number; // when chosen; the latest choice wins when devices sync
+}
+
+export type ThemeMode = "system" | "light" | "dark";
+export type DashboardMonths = 1 | 3 | 6 | 12;
+
+/** Home dashboard layout. Tile ids: "week", "bodyweight", "lift:<exerciseId>". */
+export interface DashboardLayout {
+  order: string[]; // tiles not listed here (e.g. a newly tracked lift) go after these
+  hidden: string[];
+  months: DashboardMonths;
+}
+
 export interface Settings {
+  /** Off: the rest timer never starts by itself, and the rest bar and workout button are hidden. */
+  restEnabled: boolean;
   restSeconds: number;
   autoRest: boolean;
+  restSound: boolean;
+  restVibrate: boolean;
+  theme: ThemeMode;
+  /** Keep the screen on during a workout (Wake Lock API, where supported). */
+  keepAwake: boolean;
+  /** New sets copy weight and reps from the last time the exercise was done. */
+  prefillSets: boolean;
+  dashboard: DashboardLayout;
+  /** When the settings last changed; the latest change wins when devices sync. 0 = never changed. */
+  updatedAt: number;
 }
 
 export interface AppState {
@@ -117,6 +152,7 @@ export interface AppState {
   manualPRs: ManualPR[];
   progression: ProgressionSettings[];
   advice: OverloadAdvice[];
+  videoChoices: VideoChoice[];
   settings: Settings;
   /** Deletion markers ("workout:<id>", "bw:<date>", ...) → time deleted, so sync doesn't bring deleted items back. */
   deleted: Record<string, number>;

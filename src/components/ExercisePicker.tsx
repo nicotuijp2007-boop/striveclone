@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
 import { useApp } from "../context";
 import type { Muscle } from "../types";
+import { MUSCLES } from "../lib/exercises";
 
-const MUSCLES: Muscle[] = ["Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Full body", "Cardio"];
+// On phones, opening the keyboard straight away hides most of the list; let people browse first.
+const touchScreen = typeof matchMedia !== "undefined" && matchMedia("(pointer: coarse)").matches;
 
 export function ExercisePicker({ onPick, onClose }: { onPick: (id: string) => void; onClose: () => void }) {
   const { state, dispatch } = useApp();
@@ -28,7 +30,7 @@ export function ExercisePicker({ onPick, onClose }: { onPick: (id: string) => vo
           <h2>Add exercise</h2>
           <button className="btn ghost" onClick={onClose}>Close</button>
         </div>
-        <input autoFocus className="input" placeholder="Search or name a new exercise" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input autoFocus={!touchScreen} className="input" placeholder="Search or name a new exercise" value={q} onChange={(e) => setQ(e.target.value)} />
         <div className="chips">
           {(["All", ...MUSCLES] as const).map((m) => (
             <button key={m} className={`chip ${muscle === m ? "on" : ""}`} onClick={() => setMuscle(m)}>{m}</button>

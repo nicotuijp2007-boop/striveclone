@@ -15,16 +15,18 @@ export const DEFAULT_MAX_REPS = 10;
 const DEFAULT_INCREMENTS: Record<string, number> = {
   deadlift: 5, "leg-press": 5, rdl: 2.5, squat: 2.5, bench: 2.5, ohp: 2.5, row: 2.5,
   "incline-db": 2, curl: 1, "lateral-raise": 1, "tricep-pushdown": 2.5,
+  "t-bar-row": 2.5, "leg-extension": 2.5, "leg-curl": 2.5, sldl: 2.5, "plate-shoulder-press": 2.5,
+  "cable-lateral-raise": 1, "cable-rear-delt-fly": 1, "one-arm-tricep-ext": 1, "db-preacher-curl": 1,
 };
-/** Exercises where reps are seconds or calories, so weight progression makes no sense. */
-const NO_PROGRESSION = new Set(["plank", "row-erg"]);
+/** Exercises where reps are seconds, so weight progression makes no sense. */
+const NO_PROGRESSION = new Set(["plank"]);
 
 export const defaultProgression = (exerciseId: string, exercise?: Exercise): ProgressionSettings => ({
   exerciseId,
   minReps: DEFAULT_MIN_REPS,
   maxReps: DEFAULT_MAX_REPS,
-  increment: DEFAULT_INCREMENTS[exerciseId] ?? (exercise?.muscle === "Arms" ? 1 : 2.5),
-  enabled: !NO_PROGRESSION.has(exerciseId) && exercise?.muscle !== "Cardio",
+  increment: DEFAULT_INCREMENTS[exerciseId] ?? (exercise?.muscle === "Biceps" || exercise?.muscle === "Triceps" ? 1 : 2.5),
+  enabled: !NO_PROGRESSION.has(exerciseId),
   updatedAt: 0,
 });
 

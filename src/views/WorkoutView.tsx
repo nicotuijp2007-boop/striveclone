@@ -3,8 +3,9 @@ import { useApp, useNow } from "../context";
 import { ExercisePicker } from "../components/ExercisePicker";
 import { NumberField } from "../components/NumberField";
 import { OverloadPanel } from "../components/OverloadPanel";
+import { FormVideoSheet } from "../components/FormVideoSheet";
 import { bestEst1RM, completedSetCount, durationMinutes, estimate1RM, formatKg, weekStreak, workoutVolume } from "../lib/stats";
-import { formatClock } from "../lib/audio";
+import { formatClock, unlockAudio } from "../lib/audio";
 import type { WorkoutExercise } from "../types";
 
 export function WorkoutView({ goTo }: { goTo: (tab: "routines") => void }) {
@@ -84,6 +85,7 @@ function ActiveWorkout({ onFinished }: { onFinished: (id: string) => void }) {
   const [picking, setPicking] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [prSets, setPrSets] = useState<Set<string>>(() => new Set());
+  const [videoFor, setVideoFor] = useState<string | null>(null);
 
   useEffect(() => {
     if (!toast) return;
@@ -121,7 +123,7 @@ function ActiveWorkout({ onFinished }: { onFinished: (id: string) => void }) {
       </div>
 
       {w.exercises.map((we) => (
-        <ExerciseCard key={we.id} we={we} prSets={prSets}
+        <ExerciseCard key={we.id} we={we} prSets={prSets} onVideo={() => setVideoFor(we.exerciseId)}
           onPR={(setId, msg) => { setPrSets((s) => new Set(s).add(setId)); setToast(msg); }} />
       ))}
 
@@ -133,6 +135,8 @@ function ActiveWorkout({ onFinished }: { onFinished: (id: string) => void }) {
         }}>Discard</button>
         <button className="btn primary grow" onClick={finish}>Finish workout</button>
       </div>
+
+      {videoFor && <FormVideoSheet exerciseId={videoFor} onClose={() => setVideoFor(null)} />}
 
       {toast && <div className="toast" role="status" onClick={() => setToast(null)}>{toast}</div>}
 
@@ -146,7 +150,9 @@ function ActiveWorkout({ onFinished }: { onFinished: (id: string) => void }) {
   );
 }
 
-function ExerciseCard({ we, prSets, onPR }: { we: WorkoutExercise; prSets: Set<string>; onPR: (setId: string, msg: string) => void }) {
+function ExerciseCard({ we, prSets, onPR, onVideo }: {
+  we: WorkoutExercise; prSets: Set<string>; onPR: (setId: string, msg: string) => void; onVideo: () => void;
+}) {
   const { state, dispatch, exerciseById, rest } = useApp();
   const w = state.active!;
   const ex = exerciseById(we.exerciseId);
@@ -172,7 +178,11 @@ function ExerciseCard({ we, prSets, onPR }: { we: WorkoutExercise; prSets: Set<s
     dispatch({ type: "updateSet", workoutExerciseId: we.id, setId: s.id, patch: { done: !s.done } });
     if (s.done) return;
     checkPR(s.id, s.weight, s.reps);
-    if (state.settings.autoRest) rest.start(state.settings.restSeconds);
+    const { restEnabled, autoRest, restSeconds, restSound } = state.settings;
+    if (restEnabled && autoRest) {
+      if (restSound) unlockAudio(); // browsers only allow sound after a tap
+      rest.start(restSeconds);
+    }
     // Bring the next open set into view, without opening the keyboard.
     const next = we.sets.slice(i + 1).find((x) => !x.done);
     if (next) rowRefs.current.get(next.id)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
@@ -189,6 +199,9 @@ function ExerciseCard({ we, prSets, onPR }: { we: WorkoutExercise; prSets: Set<s
       <header className="ex-head">
         <h3>{ex?.name ?? "Unknown exercise"}</h3>
         <span className="ex-count">{doneCount}/{we.sets.length}</span>
+        <button className="icon-btn form-icon" aria-label={`Watch ${ex?.name ?? ""} form video`} title="Form video" onClick={onVideo}>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" /></svg>
+        </button>
         <button className="icon-btn" aria-label={`Remove ${ex?.name ?? "exercise"}`}
           onClick={() => confirm(`Remove ${ex?.name ?? "this exercise"} from this workout?`) &&
             dispatch({ type: "removeExerciseFromWorkout", workoutExerciseId: we.id })}>

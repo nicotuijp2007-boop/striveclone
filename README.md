@@ -4,13 +4,18 @@ A mobile-first fitness tracker built as an installable web app (PWA). Data is al
 
 ## Features
 
+- **Home**: the screen the app opens on. Start a routine with one tap, see this week at a glance, and tiles for everything you track: each tracked lift's estimated 1RM and body weight with a 3-month mini chart and % change.
 - **Workout logging**: start an empty workout or one from a routine, then log weight and reps per set and tick sets off. New sets are prefilled from the last time you did that exercise. Only ticked sets are saved.
 - **Progressive overload advice**: after each workout, every exercise gets advice for next time, using double progression (default 6–10 reps). When every working set hits the top of the range, the weight goes up by that exercise's step and reps start again at the bottom. Otherwise the weight stays and the goal is more reps. The latest session decides the step. The two before it are used to spot stagnation (three sessions without more reps) or a falling trend. A small weight decrease is only suggested when you're below the range for several sessions. The advice shows on each exercise when you start a workout and prefills the sets. While you train, the card compares your ticked sets with last time (for example "+3 reps vs last time"), so beating a plateau shows as progress straight away. You can accept it or set your own weight, which then becomes the starting point; history is never changed. Rep range, step (kg) and on/off can be set per exercise.
 - **Routines**: reusable templates (exercises × sets × reps @ weight) that you can create, edit and reorder. Any finished workout can be saved as a routine.
+- **This week**: workouts, sets, volume and training time compared with the same point last week, plus the PRs set this week.
 - **Tracked PRs**: choose the lifts you care about, set an optional goal (estimated 1RM), and enter PRs set before you used the app. Ticking a set that beats a tracked PR shows a "New PR!" alert.
 - **Progress**: a heatmap of training days over the last 36 weeks (brighter = more volume), a Mon–Sun check row for this week (×N for multiple sessions), estimated 1RM trend per exercise (Epley), personal records, and a body-weight log with a chart.
-- **Timers**: a rest timer that starts automatically when you tick off a set and stays visible on every tab, plus an interval timer with Tabata, HIIT and EMOM presets. Both beep and vibrate.
-- **History**: past workouts with duration and volume, plus JSON export and import for backups.
+- **Form videos**: a ▶ Form button on each exercise in a workout plays a YouTube form tutorial (privacy-enhanced embed). All built-in exercises have a checked default, mostly Jeff Nippard videos (TNF for pull-ups and lat pulldowns) that start at the chapter for that exercise; you can paste your own link, remove it, or go back to the default. Choices sync across devices.
+- **Rest timer**: starts automatically when you tick off a set and stays visible on every tab. Turn it off, change its length, auto-start, sound and vibration in Settings.
+- **Settings** (gear, top right): account and sync, rest timer, theme (System / Light / Dark), keep the screen on during a workout, whether new sets are filled in (from the progression advice or last time), and JSON export and import for backups. Settings sync across devices; the most recent change wins.
+- **Dashboard editing**: tap Edit on Home to show, hide and reorder tiles and pick the chart period (1, 3, 6 or 12 months), then Done to save.
+- **History**: past workouts with duration and volume.
 - Works offline once loaded, and can be installed to the home screen.
 
 ## Cloud sync (Supabase)
@@ -38,6 +43,10 @@ How it works:
 2. Choose the branch to deploy (production deploys follow it on every push). Leave the build settings as detected.
 3. After the first deploy, set the site's URL as **Site URL** in Supabase under Authentication → URL Configuration, so any emails Supabase sends link to the app.
 
+## Scheduled job
+
+`.github/workflows/keep-supabase-awake.yml` pings the database every Monday and Thursday so the free Supabase project isn't paused after 7 quiet days. Scheduled workflows only run from `main`, and GitHub disables them after 60 days without repository activity (re-enable under Actions if that happens).
+
 ## Development
 
 ```bash
@@ -55,9 +64,9 @@ src/
   store.ts          reducer + localStorage persistence (pure, unit-tested)
   sync/             Supabase client, sync engine, merge logic (unit-tested with a fake cloud)
   context.tsx       React provider, rest-timer state
-  lib/              stats, progressive overload engine, interval-timer maths, audio, default exercises
-  components/       exercise picker, overload advice panel, rest bar, numeric input
-  views/            Workout, Routines, History, Progress, Timers
+  lib/              stats, progressive overload engine, audio, default exercises and settings, dashboard layout, theme and wake lock
+  components/       exercise picker, overload advice panel, form videos, rest bar, numeric input
+  views/            Home, Workout, Routines, History, Progress, Settings
 public/             manifest, service worker, icon
 supabase/           database migration
 ```

@@ -1,6 +1,7 @@
-import type { AppState, Exercise, ProgressionSettings, Routine, SetEntry, Settings, Workout } from "./types";
-import { DEFAULT_EXERCISES, DEFAULT_ROUTINES } from "./lib/exercises";
+import type { AppState, Exercise, ProgressionSettings, Routine, SetEntry, Settings, VideoRef, Workout } from "./types";
+import { DEFAULT_EXERCISES, DEFAULT_ROUTINES, migrateExercises } from "./lib/exercises";
 import { uid } from "./lib/id";
+import { defaultSettings, normalizeSettings } from "./lib/settings";
 import { mergeStates, tombstone, untombstone, type SyncedData } from "./sync/merge";
 import { getProgression, refreshAdvice, targetWeight } from "./lib/overload";
 
@@ -17,8 +18,9 @@ export const initialState = (): AppState => ({
   manualPRs: [],
   progression: [],
   advice: [],
+  videoChoices: [],
   deleted: {},
-  settings: { restSeconds: 90, autoRest: true },
+  settings: defaultSettings(),
 });
 
 export const loadState = (): AppState => {
@@ -26,8 +28,10 @@ export const loadState = (): AppState => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return initialState();
     const parsed = JSON.parse(raw) as Partial<AppState>;
-    // Advice is recomputed on load so history logged before this feature gets advice straight away.
-    return refreshAdvice({ ...initialState(), ...parsed, settings: { ...initialState().settings, ...parsed.settings } });
+    const base = initialState();
+    // Fill in new settings, migrate old muscle groups, then recompute advice so history
+    // logged before the overload feature gets advice straight away.
+    return refreshAdvice(migrateExercises({ ...base, ...parsed, settings: normalizeSettings(parsed.settings) }));
   } catch {
     return initialState();
   }
@@ -63,7 +67,8 @@ export type Action =
   | { type: "setPRGoal"; exerciseId: string; goalKg?: number }
   | { type: "addManualPR"; exerciseId: string; weight: number; reps: number; date: number }
   | { type: "deleteManualPR"; id: string }
-  | { type: "updateSettings"; patch: Partial<Settings> }
+  | { type: "setExerciseVideo"; exerciseId: string; video: VideoRef | null | "default"; now?: number }
+  | { type: "updateSettings"; patch: Partial<Omit<Settings, "updatedAt">>; now?: number }
   /** Change an exercise's rep range, increment or on/off; the advice is recomputed. */
   | { type: "setProgression"; exerciseId: string; patch: Partial<Omit<ProgressionSettings, "exerciseId" | "updatedAt">> }
   /** Use the recommended weight and reps for the not-yet-done sets in the active workout. */
@@ -142,7 +147,7 @@ export function reducer(state: AppState, action: Action): AppState {
         routineId: routine?.id,
         startedAt: now,
         exercises: (routine?.exercises ?? []).map((re) => {
-          const advice = adviceFor(state, re.exerciseId);
+          const advice = state.settings.prefillSets ? adviceFor(state, re.exerciseId) : undefined;
           return {
             id: uid(),
             exerciseId: re.exerciseId,
@@ -159,8 +164,9 @@ export function reducer(state: AppState, action: Action): AppState {
     case "renameWorkout":
       return mapActive(state, (w) => ({ ...w, name: action.name }));
     case "addExerciseToWorkout": {
-      const prev = lastPerformance(state, action.exerciseId);
-      const advice = adviceFor(state, action.exerciseId);
+      // Prefilling off: start empty; Accept on the advice card can still fill in the sets.
+      const prev = state.settings.prefillSets ? lastPerformance(state, action.exerciseId) : undefined;
+      const advice = state.settings.prefillSets ? adviceFor(state, action.exerciseId) : undefined;
       let sets = prev ? prev.map((s) => newSet(s.reps, s.weight)) : [newSet(8, 0)];
       if (advice) sets = retarget(sets, advice.lastWeight, targetWeight(advice), advice.targetReps);
       return mapActive(state, (w) => ({
@@ -272,8 +278,16 @@ export function reducer(state: AppState, action: Action): AppState {
       };
     case "deleteManualPR":
       return tombstone({ ...state, manualPRs: state.manualPRs.filter((m) => m.id !== action.id) }, `manualPR:${action.id}`);
+    case "setExerciseVideo":
+      return {
+        ...state,
+        videoChoices: [
+          ...state.videoChoices.filter((c) => c.exerciseId !== action.exerciseId),
+          { exerciseId: action.exerciseId, video: action.video, at: action.now ?? Date.now() },
+        ],
+      };
     case "updateSettings":
-      return { ...state, settings: { ...state.settings, ...action.patch } };
+      return { ...state, settings: { ...state.settings, ...action.patch, updatedAt: action.now ?? Date.now() } };
     case "setProgression": {
       const cur = getProgression(state, action.exerciseId);
       const next: ProgressionSettings = { ...cur, ...action.patch, exerciseId: action.exerciseId, updatedAt: Date.now() };
@@ -297,15 +311,20 @@ export function reducer(state: AppState, action: Action): AppState {
     }
     case "importState": {
       // Mark everything not in the backup as deleted, so a signed-in sync doesn't merge it back.
-      const next: AppState = { ...initialState(), ...action.state, active: state.active };
+      // The backup's settings count as a fresh change, so they win over other devices' settings.
+      const next: AppState = {
+        ...initialState(), ...action.state, active: state.active,
+        settings: { ...normalizeSettings(action.state.settings), updatedAt: Date.now() },
+      };
       const keep = new Set(itemKeys(next));
       const deleted = { ...next.deleted };
       for (const k of itemKeys(state)) if (!keep.has(k)) deleted[k] = Date.now();
-      return refreshAdvice({ ...next, deleted });
+      return refreshAdvice(migrateExercises({ ...next, deleted }));
     }
     case "mergeRemote":
-      // Workouts from another device can change the latest session, so recompute advice.
-      return refreshAdvice(mergeStates(state, action.remote));
+      // Another device may still use older muscle groups or exercises, and its workouts can
+      // change the latest session, so migrate and then recompute advice.
+      return refreshAdvice(migrateExercises(mergeStates(state, action.remote)));
     case "reset":
       return initialState();
   }

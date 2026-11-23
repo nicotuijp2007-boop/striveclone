@@ -6,9 +6,22 @@
     <meta name="theme-color" content="#0f1115" />
     <meta name="description" content="Log workouts, build routines, track progress and time your rests." />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="/icon.svg" />
+    <!-- iOS ignores SVG here and falls back to a letter, so it needs a PNG. -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <meta name="apple-mobile-web-app-title" content="Liftlog" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <title>Liftlog</title>
+    <script>
+      // Apply the theme chosen in Settings before the page paints, so it doesn't flash the other theme.
+      try {
+        var t = JSON.parse(localStorage.getItem("liftlog:v1") || "{}").settings?.theme;
+        if (t === "light" || t === "dark") {
+          document.documentElement.dataset.theme = t;
+          document.querySelector('meta[name="theme-color"]').content = t === "light" ? "#f4f5f7" : "#0f1115";
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

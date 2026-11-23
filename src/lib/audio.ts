@@ -1,10 +1,20 @@
 let ctx: AudioContext | null = null;
 
-/** Short beep via WebAudio; call once from a user gesture first to unlock audio on iOS. */
-export const beep = (freq = 880, ms = 180, volume = 0.2): void => {
+/** Create or resume the audio context. Call from a tap (e.g. ticking a set) so iOS lets the rest-end beep play later. */
+export const unlockAudio = (): void => {
   try {
     ctx ??= new AudioContext();
     if (ctx.state === "suspended") void ctx.resume();
+  } catch {
+    /* audio unavailable */
+  }
+};
+
+/** Short beep via WebAudio. */
+export const beep = (freq = 880, ms = 180, volume = 0.2): void => {
+  try {
+    unlockAudio();
+    if (!ctx) return;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.frequency.value = freq;
@@ -16,7 +26,11 @@ export const beep = (freq = 880, ms = 180, volume = 0.2): void => {
   } catch {
     /* audio unavailable */
   }
-  if ("vibrate" in navigator) navigator.vibrate?.(150);
+};
+
+/** Vibrate where supported (not on iPhone). */
+export const vibrate = (pattern: number | number[]): void => {
+  if ("vibrate" in navigator) navigator.vibrate?.(pattern);
 };
 
 export const formatClock = (totalSeconds: number): string => {
