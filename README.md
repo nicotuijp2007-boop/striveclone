@@ -5,6 +5,7 @@ A mobile-first fitness tracker built as an installable web app (PWA). Data is al
 ## Features
 
 - **Workout logging**: start an empty workout or one from a routine, then log weight and reps per set and tick sets off. New sets are prefilled from the last time you did that exercise. Only ticked sets are saved.
+- **Progressive overload advice**: after each workout, every exercise gets advice for next time, using double progression (default 6–10 reps). When every working set hits the top of the range, the weight goes up by that exercise's step and reps start again at the bottom. Otherwise the weight stays and the goal is more reps. The latest session decides the step. The two before it are used to spot stagnation (three sessions without more reps) or a falling trend. A small weight decrease is only suggested when you're below the range for several sessions. The advice shows on each exercise when you start a workout and prefills the sets. While you train, the card compares your ticked sets with last time (for example "+3 reps vs last time"), so beating a plateau shows as progress straight away. You can accept it or set your own weight, which then becomes the starting point; history is never changed. Rep range, step (kg) and on/off can be set per exercise.
 - **Routines**: reusable templates (exercises × sets × reps @ weight) that you can create, edit and reorder. Any finished workout can be saved as a routine.
 - **Tracked PRs**: choose the lifts you care about, set an optional goal (estimated 1RM), and enter PRs set before you used the app. Ticking a set that beats a tracked PR shows a "New PR!" alert.
 - **Progress**: a heatmap of training days over the last 36 weeks (brighter = more volume), a Mon–Sun check row for this week (×N for multiple sessions), estimated 1RM trend per exercise (Epley), personal records, and a body-weight log with a chart.
@@ -54,8 +55,8 @@ src/
   store.ts          reducer + localStorage persistence (pure, unit-tested)
   sync/             Supabase client, sync engine, merge logic (unit-tested with a fake cloud)
   context.tsx       React provider, rest-timer state
-  lib/              stats, interval-timer maths, audio, default exercises
-  components/       exercise picker, rest bar, numeric input
+  lib/              stats, progressive overload engine, interval-timer maths, audio, default exercises
+  components/       exercise picker, overload advice panel, rest bar, numeric input
   views/            Workout, Routines, History, Progress, Timers
 public/             manifest, service worker, icon
 supabase/           database migration

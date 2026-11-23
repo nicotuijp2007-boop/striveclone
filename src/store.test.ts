@@ -18,11 +18,12 @@ describe("reducer", () => {
     let s = reducer(initialState(), { type: "startWorkout" });
     s = reducer(s, { type: "addExerciseToWorkout", exerciseId: "curl" });
     const we = s.active!.exercises[0];
-    s = reducer(s, { type: "updateSet", workoutExerciseId: we.id, setId: we.sets[0].id, patch: { done: true, weight: 30, reps: 10 } });
+    s = reducer(s, { type: "updateSet", workoutExerciseId: we.id, setId: we.sets[0].id, patch: { done: true, weight: 30, reps: 8 } });
     s = reducer(s, { type: "finishWorkout" });
     s = reducer(s, { type: "startWorkout" });
     s = reducer(s, { type: "addExerciseToWorkout", exerciseId: "curl" });
-    expect(s.active!.exercises[0].sets[0]).toMatchObject({ weight: 30, reps: 10, done: false });
+    // Same weight; reps come from the progression advice (one more than last time).
+    expect(s.active!.exercises[0].sets[0]).toMatchObject({ weight: 30, reps: 9, done: false });
   });
 
   it("drops an empty workout on finish", () => {

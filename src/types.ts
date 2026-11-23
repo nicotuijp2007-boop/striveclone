@@ -63,6 +63,44 @@ export interface ManualPR {
   date: number;
 }
 
+/** Per-exercise progressive overload settings. Only stored once the user changes the defaults. */
+export interface ProgressionSettings {
+  exerciseId: string;
+  minReps: number;
+  maxReps: number;
+  /** kg added when every working set hits maxReps; also the smallest step the equipment allows. */
+  increment: number;
+  enabled: boolean;
+  updatedAt: number;
+}
+
+export type AdviceStatus =
+  | "increase"   // all working sets hit the top of the range
+  | "more_reps"  // in range, keep the weight and add reps
+  | "hold"       // keep the weight (first session, one off day, missed sets)
+  | "stagnation" // three sessions at the same level
+  | "decline"    // reps dropping session after session
+  | "decrease";  // structurally below the range: lower the weight a little
+
+/** Advice for the next time an exercise is done, generated when a workout is finished. */
+export interface OverloadAdvice {
+  exerciseId: string;
+  /** The workout whose results drive this advice (the latest valid session). */
+  basedOnWorkoutId: string;
+  status: AdviceStatus;
+  lastWeight: number;
+  lastReps: number[];
+  lastDate: number;
+  recommendedWeight: number;
+  /** Target reps per working set for the next session. */
+  targetReps: number[];
+  reasons: string[];
+  /** Weight the user chose instead of the recommendation; used as the new starting point. */
+  adjustedWeight?: number;
+  acceptedAt?: number;
+  updatedAt: number;
+}
+
 export interface Settings {
   restSeconds: number;
   autoRest: boolean;
@@ -77,6 +115,8 @@ export interface AppState {
   bodyWeight: BodyWeightEntry[]; // sorted by date ascending
   trackedPRs: TrackedPR[];
   manualPRs: ManualPR[];
+  progression: ProgressionSettings[];
+  advice: OverloadAdvice[];
   settings: Settings;
   /** Deletion markers ("workout:<id>", "bw:<date>", ...) → time deleted, so sync doesn't bring deleted items back. */
   deleted: Record<string, number>;

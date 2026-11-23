@@ -1,7 +1,8 @@
-import type { AppState, Exercise, Routine, SetEntry, Settings, Workout } from "./types";
+import type { AppState, Exercise, ProgressionSettings, Routine, SetEntry, Settings, Workout } from "./types";
 import { DEFAULT_EXERCISES, DEFAULT_ROUTINES } from "./lib/exercises";
 import { uid } from "./lib/id";
 import { mergeStates, tombstone, untombstone, type SyncedData } from "./sync/merge";
+import { getProgression, refreshAdvice, targetWeight } from "./lib/overload";
 
 export const STORAGE_KEY = "liftlog:v1";
 
@@ -14,6 +15,8 @@ export const initialState = (): AppState => ({
   bodyWeight: [],
   trackedPRs: [],
   manualPRs: [],
+  progression: [],
+  advice: [],
   deleted: {},
   settings: { restSeconds: 90, autoRest: true },
 });
@@ -23,7 +26,8 @@ export const loadState = (): AppState => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return initialState();
     const parsed = JSON.parse(raw) as Partial<AppState>;
-    return { ...initialState(), ...parsed, settings: { ...initialState().settings, ...parsed.settings } };
+    // Advice is recomputed on load so history logged before this feature gets advice straight away.
+    return refreshAdvice({ ...initialState(), ...parsed, settings: { ...initialState().settings, ...parsed.settings } });
   } catch {
     return initialState();
   }
@@ -60,6 +64,12 @@ export type Action =
   | { type: "addManualPR"; exerciseId: string; weight: number; reps: number; date: number }
   | { type: "deleteManualPR"; id: string }
   | { type: "updateSettings"; patch: Partial<Settings> }
+  /** Change an exercise's rep range, increment or on/off; the advice is recomputed. */
+  | { type: "setProgression"; exerciseId: string; patch: Partial<Omit<ProgressionSettings, "exerciseId" | "updatedAt">> }
+  /** Use the recommended weight and reps for the not-yet-done sets in the active workout. */
+  | { type: "acceptAdvice"; exerciseId: string }
+  /** Use the user's own weight instead; it becomes the starting point, history is untouched. */
+  | { type: "adjustAdvice"; exerciseId: string; weight: number }
   | { type: "importState"; state: AppState }
   /** Combine data pulled from the cloud into the current state. */
   | { type: "mergeRemote"; remote: Partial<SyncedData> }
@@ -76,6 +86,27 @@ const lastPerformance = (state: AppState, exerciseId: string): SetEntry[] | unde
   }
   return undefined;
 };
+
+const adviceFor = (state: AppState, exerciseId: string) => state.advice.find((a) => a.exerciseId === exerciseId);
+
+/**
+ * Point the active workout's open working sets of an exercise at a new weight and target reps.
+ * Working sets are the open sets at `fromWeight` (what was prefilled); lighter warm-up sets stay.
+ */
+const retarget = (sets: SetEntry[], fromWeight: number, weight: number, reps?: number[]): SetEntry[] => {
+  const open = sets.filter((s) => !s.done);
+  const working = open.some((s) => s.weight === fromWeight) ? open.filter((s) => s.weight === fromWeight) : open;
+  return sets.map((s) => {
+    const i = working.indexOf(s);
+    return i < 0 ? s : { ...s, weight, ...(reps && { reps: reps[i] ?? reps[reps.length - 1] }) };
+  });
+};
+
+const retargetSets = (state: AppState, exerciseId: string, fromWeight: number, weight: number, reps?: number[]): AppState =>
+  mapActive(state, (w) => ({
+    ...w,
+    exercises: w.exercises.map((we) => (we.exerciseId === exerciseId ? { ...we, sets: retarget(we.sets, fromWeight, weight, reps) } : we)),
+  }));
 
 const mapActive = (state: AppState, fn: (w: Workout) => Workout): AppState =>
   state.active ? { ...state, active: fn(state.active) } : state;
@@ -110,11 +141,18 @@ export function reducer(state: AppState, action: Action): AppState {
         name: routine?.name ?? `Workout ${new Date(now).toLocaleDateString(undefined, { weekday: "long" })}`,
         routineId: routine?.id,
         startedAt: now,
-        exercises: (routine?.exercises ?? []).map((re) => ({
-          id: uid(),
-          exerciseId: re.exerciseId,
-          sets: Array.from({ length: Math.max(1, re.sets) }, () => newSet(re.reps, re.weight)),
-        })),
+        exercises: (routine?.exercises ?? []).map((re) => {
+          const advice = adviceFor(state, re.exerciseId);
+          return {
+            id: uid(),
+            exerciseId: re.exerciseId,
+            sets: Array.from({ length: Math.max(1, re.sets) }, (_, i) =>
+              advice
+                ? newSet(advice.targetReps[i] ?? advice.targetReps[advice.targetReps.length - 1], targetWeight(advice))
+                : newSet(re.reps, re.weight)
+            ),
+          };
+        }),
       };
       return { ...state, active: workout };
     }
@@ -122,7 +160,9 @@ export function reducer(state: AppState, action: Action): AppState {
       return mapActive(state, (w) => ({ ...w, name: action.name }));
     case "addExerciseToWorkout": {
       const prev = lastPerformance(state, action.exerciseId);
-      const sets = prev ? prev.map((s) => newSet(s.reps, s.weight)) : [newSet(8, 0)];
+      const advice = adviceFor(state, action.exerciseId);
+      let sets = prev ? prev.map((s) => newSet(s.reps, s.weight)) : [newSet(8, 0)];
+      if (advice) sets = retarget(sets, advice.lastWeight, targetWeight(advice), advice.targetReps);
       return mapActive(state, (w) => ({
         ...w,
         exercises: [...w.exercises, { id: uid(), exerciseId: action.exerciseId, sets }],
@@ -151,12 +191,21 @@ export function reducer(state: AppState, action: Action): AppState {
         .filter((we) => we.sets.length > 0);
       if (exercises.length === 0) return { ...state, active: null };
       const finished: Workout = { ...state.active, exercises, finishedAt: action.now ?? Date.now() };
-      return { ...state, active: null, workouts: [finished, ...state.workouts] };
+      // Analyse every exercise just done and store the advice for next time.
+      return refreshAdvice(
+        { ...state, active: null, workouts: [finished, ...state.workouts] },
+        exercises.map((we) => we.exerciseId)
+      );
     }
     case "discardWorkout":
       return { ...state, active: null };
-    case "deleteWorkout":
-      return tombstone({ ...state, workouts: state.workouts.filter((w) => w.id !== action.id) }, `workout:${action.id}`);
+    case "deleteWorkout": {
+      const gone = state.workouts.find((w) => w.id === action.id);
+      return refreshAdvice(
+        tombstone({ ...state, workouts: state.workouts.filter((w) => w.id !== action.id) }, `workout:${action.id}`),
+        gone?.exercises.map((we) => we.exerciseId) ?? []
+      );
+    }
     case "saveRoutine": {
       const exists = state.routines.some((r) => r.id === action.routine.id);
       return {
@@ -225,16 +274,38 @@ export function reducer(state: AppState, action: Action): AppState {
       return tombstone({ ...state, manualPRs: state.manualPRs.filter((m) => m.id !== action.id) }, `manualPR:${action.id}`);
     case "updateSettings":
       return { ...state, settings: { ...state.settings, ...action.patch } };
+    case "setProgression": {
+      const cur = getProgression(state, action.exerciseId);
+      const next: ProgressionSettings = { ...cur, ...action.patch, exerciseId: action.exerciseId, updatedAt: Date.now() };
+      if (next.minReps > next.maxReps) next.maxReps = next.minReps;
+      const progression = [...state.progression.filter((p) => p.exerciseId !== action.exerciseId), next];
+      return refreshAdvice({ ...state, progression }, [action.exerciseId]);
+    }
+    case "acceptAdvice": {
+      const a = adviceFor(state, action.exerciseId);
+      if (!a) return state;
+      const s = retargetSets(state, a.exerciseId, targetWeight(a), a.recommendedWeight, a.targetReps);
+      const { adjustedWeight: _drop, ...rest } = a;
+      return { ...s, advice: s.advice.map((x) => (x === a ? { ...rest, acceptedAt: Date.now(), updatedAt: Date.now() } : x)) };
+    }
+    case "adjustAdvice": {
+      const a = adviceFor(state, action.exerciseId);
+      if (!a || !(action.weight >= 0)) return state;
+      const s = retargetSets(state, a.exerciseId, targetWeight(a), action.weight);
+      const now = Date.now();
+      return { ...s, advice: s.advice.map((x) => (x === a ? { ...a, adjustedWeight: action.weight, acceptedAt: now, updatedAt: now } : x)) };
+    }
     case "importState": {
       // Mark everything not in the backup as deleted, so a signed-in sync doesn't merge it back.
       const next: AppState = { ...initialState(), ...action.state, active: state.active };
       const keep = new Set(itemKeys(next));
       const deleted = { ...next.deleted };
       for (const k of itemKeys(state)) if (!keep.has(k)) deleted[k] = Date.now();
-      return { ...next, deleted };
+      return refreshAdvice({ ...next, deleted });
     }
     case "mergeRemote":
-      return mergeStates(state, action.remote);
+      // Workouts from another device can change the latest session, so recompute advice.
+      return refreshAdvice(mergeStates(state, action.remote));
     case "reset":
       return initialState();
   }

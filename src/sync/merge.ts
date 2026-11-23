@@ -38,6 +38,17 @@ function unionBy<T>(local: T[], remote: T[], key: (t: T) => string, markers: Rec
   return [...out.entries()].filter(([k]) => !isDeleted(markers, k)).map(([, v]) => v);
 }
 
+/** Union by key where the most recently updated copy wins (per-exercise settings and advice). */
+function newestBy<T extends { updatedAt: number }>(local: T[], remote: T[] | undefined, key: (t: T) => string): T[] {
+  const out = new Map<string, T>();
+  for (const l of local) out.set(key(l), l);
+  for (const r of remote ?? []) {
+    const cur = out.get(key(r));
+    if (!cur || r.updatedAt > cur.updatedAt) out.set(key(r), r);
+  }
+  return [...out.values()];
+}
+
 /**
  * Combine this device's state with the cloud copy. Lists are merged by id, the latest delete or
  * re-add wins, and settings and the in-progress workout come from this device.
@@ -54,6 +65,8 @@ export function mergeStates(local: AppState, remote: Partial<SyncedData>): AppSt
     bodyWeight: merge(local.bodyWeight, remote.bodyWeight, (b) => `bw:${b.date}`).sort((a, b) => a.date.localeCompare(b.date)),
     trackedPRs: merge(local.trackedPRs, remote.trackedPRs, (t) => `tracked:${t.exerciseId}`),
     manualPRs: merge(local.manualPRs, remote.manualPRs, (m) => `manualPR:${m.id}`),
+    progression: newestBy(local.progression, remote.progression, (p) => p.exerciseId),
+    advice: newestBy(local.advice, remote.advice, (a) => a.exerciseId),
     deleted,
   };
 }
