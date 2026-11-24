@@ -1,4 +1,5 @@
 import type { Settings } from "../types";
+import { THEME_MODES, defaultCustomTheme, normalizeCustomTheme } from "./theme";
 
 export const defaultSettings = (): Settings => ({
   restEnabled: true,
@@ -7,6 +8,7 @@ export const defaultSettings = (): Settings => ({
   restSound: true,
   restVibrate: true,
   theme: "system",
+  customTheme: defaultCustomTheme(),
   keepAwake: true,
   prefillSets: true,
   dashboard: { order: [], hidden: [], months: 3 },
@@ -19,5 +21,12 @@ export const normalizeSettings = (s: Partial<Settings> | undefined): Settings =>
   const base = defaultSettings();
   // Keep only settings this version knows, so retired or future fields (e.g. weightStep) are ignored.
   const known = Object.fromEntries(Object.entries(s ?? {}).filter(([k]) => k in base)) as Partial<Settings>;
-  return { ...base, ...known, dashboard: { ...base.dashboard, ...known.dashboard } };
+  return {
+    ...base,
+    ...known,
+    // A theme from a newer version (or garbage) falls back to System.
+    theme: THEME_MODES.includes(known.theme as Settings["theme"]) ? (known.theme as Settings["theme"]) : base.theme,
+    customTheme: normalizeCustomTheme(known.customTheme),
+    dashboard: { ...base.dashboard, ...known.dashboard },
+  };
 };

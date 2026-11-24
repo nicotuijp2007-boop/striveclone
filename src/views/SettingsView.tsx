@@ -1,15 +1,29 @@
-import { useRef, type ReactNode } from "react";
+import { useRef, type CSSProperties, type ReactNode } from "react";
 import { useApp } from "../context";
 import { AccountSection } from "../components/AccountSection";
 import { formatClock } from "../lib/audio";
 import { exportBackup, readBackup } from "../lib/backup";
-import type { Settings, ThemeMode } from "../types";
+import { customWarnings, defaultCustomTheme } from "../lib/theme";
+import type { CustomTheme, Settings, ThemeMode } from "../types";
 
 const DURATIONS = [30, 60, 90, 120, 180];
 const THEMES: { id: ThemeMode; label: string }[] = [
   { id: "system", label: "System" },
   { id: "light", label: "Light" },
   { id: "dark", label: "Dark" },
+  { id: "midnight", label: "Midnight" },
+  { id: "forest", label: "Forest" },
+  { id: "sand", label: "Sand" },
+  { id: "custom", label: "Custom" },
+];
+const BASES: { id: CustomTheme["base"]; label: string }[] = [
+  { id: "dark", label: "Dark" },
+  { id: "light", label: "Light" },
+];
+const COLOR_FIELDS: { key: "accent" | "bg" | "surface"; label: string }[] = [
+  { key: "accent", label: "Accent" },
+  { key: "bg", label: "Background" },
+  { key: "surface", label: "Cards" },
 ];
 
 const canVibrate = typeof navigator !== "undefined" && "vibrate" in navigator;
@@ -64,7 +78,8 @@ export function SettingsView({ onClose }: { onClose: () => void }) {
       </Group>
 
       <Group title="Appearance">
-        <Segmented label="Theme" options={THEMES} value={s.theme} onChange={(theme) => set({ theme })} />
+        <ThemePicker value={s.theme} custom={s.customTheme} onChange={(theme) => set({ theme })} />
+        {s.theme === "custom" && <CustomThemeEditor value={s.customTheme} onChange={(customTheme) => set({ customTheme })} />}
       </Group>
 
       <Group title="Workout">
@@ -122,6 +137,74 @@ function Switch({ label, checked, onChange, hint }: { label: string; checked: bo
       </span>
       <input type="checkbox" role="switch" className="switch" checked={checked} onChange={(e) => onChange(e.target.checked)} />
     </label>
+  );
+}
+
+/** Theme swatches. Each card carries data-theme, so it renders with that theme's own tokens. */
+function ThemePicker({ value, custom, onChange }: { value: ThemeMode; custom: CustomTheme; onChange: (t: ThemeMode) => void }) {
+  return (
+    <div className="setting-block">
+      <span>Theme</span>
+      <div className="theme-grid" role="radiogroup" aria-label="Theme">
+        {THEMES.map((t) => {
+          const swatch =
+            t.id === "custom"
+              ? { "data-theme": custom.base, style: { "--bg": custom.bg, "--surface": custom.surface, "--accent": custom.accent } as CSSProperties }
+              : t.id === "system" ? {} : { "data-theme": t.id };
+          return (
+            <button key={t.id} role="radio" aria-checked={value === t.id} className={`theme-card${value === t.id ? " on" : ""}`} onClick={() => onChange(t.id)}>
+              {t.id === "system" ? (
+                <span className="theme-swatch split-swatch">
+                  <span data-theme="light"><i /><b /></span>
+                  <span data-theme="dark"><i /><b /></span>
+                </span>
+              ) : (
+                <span className="theme-swatch" {...swatch}><i /><b /></span>
+              )}
+              <span className="theme-name">{t.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** Base and key colours of the custom theme. The whole app updates as you pick, so it is its own preview. */
+function CustomThemeEditor({ value, onChange }: { value: CustomTheme; onChange: (c: CustomTheme) => void }) {
+  const warnings = customWarnings(value);
+  return (
+    <div className="custom-theme">
+      {/* Switching base starts from that base's colours, since dark colours don't work on a light base. */}
+      <Segmented label="Base" options={BASES} value={value.base} onChange={(base) => base !== value.base && onChange(defaultCustomTheme(base))} />
+      {COLOR_FIELDS.map((f) => (
+        <label key={f.key} className="setting-row">
+          <span>{f.label}</span>
+          <span className="row">
+            <code className="muted small">{value[f.key]}</code>
+            <input type="color" className="color-input" value={value[f.key]} onChange={(e) => onChange({ ...value, [f.key]: e.target.value.toLowerCase() })} />
+          </span>
+        </label>
+      ))}
+      <div className="theme-preview" aria-label="Preview">
+        <div className="split">
+          <span>
+            <strong>Bench press</strong>
+            <span className="muted small"> · 3 × 8 · 80 kg</span>
+          </span>
+          <span className="pill">PR</span>
+        </div>
+        <div className="row">
+          <span className="theme-preview-chip">Set 1</span>
+          <span className="theme-preview-chip">Set 2</span>
+          <button className="btn primary grow" type="button" tabIndex={-1}>Finish</button>
+        </div>
+      </div>
+      {warnings.map((w) => (
+        <p key={w} className="theme-warning small" role="status">{w}</p>
+      ))}
+      <button className="btn" onClick={() => onChange(defaultCustomTheme(value.base))}>Reset colours</button>
+    </div>
   );
 }
 

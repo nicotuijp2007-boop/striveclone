@@ -1,26 +1,33 @@
 import { useEffect } from "react";
-import type { ThemeMode } from "../types";
+import type { CustomTheme, ThemeMode } from "../types";
+import { customThemeVars } from "./theme";
 
-const THEME_COLORS = { dark: "#0f1115", light: "#f4f5f7" };
+const CUSTOM_VARS = Object.keys(customThemeVars({ base: "dark", accent: "#000000", bg: "#000000", surface: "#000000" }));
 
 /**
- * Set data-theme on <html> ("light" or "dark"; removed for "system", so prefers-color-scheme decides)
- * and match the browser's theme colour. index.html does the same before the app loads, to avoid a flash.
+ * Set data-theme on <html> (removed for "system", so prefers-color-scheme decides). A custom theme
+ * uses its base as data-theme plus inline variables. The browser's theme colour follows --bg.
+ * index.html does the same before the app loads, to avoid a flash.
  */
-export function useTheme(mode: ThemeMode): void {
+export function useTheme(mode: ThemeMode, custom: CustomTheme): void {
+  const { base, accent, bg, surface } = custom;
   useEffect(() => {
     const root = document.documentElement;
     const media = window.matchMedia?.("(prefers-color-scheme: light)");
     const apply = () => {
+      for (const v of CUSTOM_VARS) root.style.removeProperty(v);
       if (mode === "system") delete root.dataset.theme;
-      else root.dataset.theme = mode;
-      const effective = mode === "system" ? (media?.matches ? "light" : "dark") : mode;
-      document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME_COLORS[effective]);
+      else if (mode === "custom") {
+        root.dataset.theme = base;
+        for (const [k, v] of Object.entries(customThemeVars({ base, accent, bg, surface }))) root.style.setProperty(k, v);
+      } else root.dataset.theme = mode;
+      const color = getComputedStyle(root).getPropertyValue("--bg").trim();
+      if (color) document.querySelector('meta[name="theme-color"]')?.setAttribute("content", color);
     };
     apply();
     media?.addEventListener?.("change", apply);
     return () => media?.removeEventListener?.("change", apply);
-  }, [mode]);
+  }, [mode, base, accent, bg, surface]);
 }
 
 /**

@@ -28,15 +28,47 @@
   font-size: 16px;
   line-height: 1.4;
 }
-/* Light colours: chosen in Settings (data-theme="light"), or by the system when the theme is "System". */
-:root[data-theme="light"] {
+/*
+ * Themes. Plain [data-theme] selectors (not :root only), so a swatch card in Settings with
+ * data-theme="forest" shows that theme's real colours. A custom theme sets data-theme to its base
+ * and overrides some of these as inline variables on <html> (src/lib/theme.ts).
+ */
+[data-theme="dark"] {
+  --bg: #0b0c0f; --surface: #15171c; --surface-2: #1d2026; --surface-3: #272a32; --border: rgb(255 255 255 / .07);
+  --text: #f2f4f7; --muted: #8a92a2; --accent: #c6f432; --accent-ink: #12160a;
+  --info: #5cc8ff; --warn: #ff9f43; --danger: #ff5d5d; --sleep: #a78bfa;
+  color-scheme: dark;
+}
+[data-theme="light"] {
   --bg: #f3f4f6; --surface: #ffffff; --surface-2: #eef0f3; --surface-3: #e2e5ea; --border: rgb(0 0 0 / .08);
   --text: #14161b; --muted: #5f6776; --accent: #4f7a00; --accent-ink: #ffffff;
   --info: #0070b0; --warn: #b85c00; --danger: #d63b3b; --sleep: #6d4fd8;
   color-scheme: light;
 }
+/* Deep navy with a teal accent. */
+[data-theme="midnight"] {
+  --bg: #080d1a; --surface: #111a2c; --surface-2: #19233a; --surface-3: #232f4a; --border: rgb(160 190 255 / .09);
+  --text: #eef2fb; --muted: #8e9bb6; --accent: #4fe3c8; --accent-ink: #032019;
+  --info: #7ab8ff; --warn: #ffad5c; --danger: #ff6b7d; --sleep: #b49cff;
+  color-scheme: dark;
+}
+/* Dark green with a fresh green accent. */
+[data-theme="forest"] {
+  --bg: #0a100c; --surface: #121b15; --surface-2: #1a251e; --surface-3: #243128; --border: rgb(190 255 210 / .07);
+  --text: #eef5f0; --muted: #8fa396; --accent: #5ee38a; --accent-ink: #052812;
+  --info: #66c4ff; --warn: #ffa64d; --danger: #ff6b6b; --sleep: #a78bfa;
+  color-scheme: dark;
+}
+/* Warm, paper-like light theme with a deep teal accent. */
+[data-theme="sand"] {
+  --bg: #f3ede3; --surface: #fffcf6; --surface-2: #efe7da; --surface-3: #e3d9c8; --border: rgb(70 45 15 / .1);
+  --text: #1f1a14; --muted: #675d50; --accent: #0d6e66; --accent-ink: #ffffff;
+  --info: #1b65a8; --warn: #a14f00; --danger: #bf3128; --sleep: #6845d0;
+  color-scheme: light;
+}
+/* "System" removes data-theme; then the system's light mode decides. */
 @media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
+  :root:not([data-theme]) {
     --bg: #f3f4f6; --surface: #ffffff; --surface-2: #eef0f3; --surface-3: #e2e5ea; --border: rgb(0 0 0 / .08);
     --text: #14161b; --muted: #5f6776; --accent: #4f7a00; --accent-ink: #ffffff;
     --info: #0070b0; --warn: #b85c00; --danger: #d63b3b; --sleep: #6d4fd8;
@@ -391,6 +423,27 @@ rect.today { stroke: var(--text); stroke-width: 1.5; }
 .tile-ctl { flex: 1; height: 36px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); color: var(--text); display: grid; place-items: center; font-size: .8rem; }
 .tile-ctl[aria-pressed="false"] { color: var(--muted); }
 .setting-group p { margin: 0; }
+
+/* Theme picker: swatch cards that wrap, so any number of themes fits at phone width. */
+.theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.theme-card { display: flex; flex-direction: column; gap: 6px; padding: 6px; border: 2px solid var(--border);
+  border-radius: var(--radius-sm); background: var(--surface-2); text-align: left; }
+.theme-card.on { border-color: var(--accent); }
+.theme-name { font-size: .82rem; font-weight: 650; padding: 0 2px 2px; }
+.theme-card.on .theme-name { color: var(--text); }
+/* Mini app: background, a card bar and an accent dot, drawn with the swatch's own tokens. */
+.theme-swatch { position: relative; display: flex; height: 44px; border-radius: 8px; overflow: hidden; background: var(--bg);
+  box-shadow: inset 0 0 0 1px var(--border); }
+.theme-swatch i { position: absolute; left: 8px; right: 8px; top: 9px; height: 10px; border-radius: 4px; background: var(--surface); }
+.theme-swatch b { position: absolute; right: 8px; bottom: 7px; width: 22px; height: 10px; border-radius: 999px; background: var(--accent); }
+.split-swatch > span { position: relative; flex: 1; background: var(--bg); }
+.custom-theme { display: flex; flex-direction: column; gap: 12px; padding-top: 4px; border-top: 1px solid var(--border); }
+.color-input { width: 44px; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: 8px; background: none; cursor: pointer; }
+.color-input::-webkit-color-swatch-wrapper { padding: 2px; }
+.color-input::-webkit-color-swatch { border: 0; border-radius: 6px; }
+.theme-preview { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: var(--radius-sm); background: var(--bg); }
+.theme-preview-chip { padding: 6px 10px; border-radius: 8px; background: var(--surface-3); font-size: .82rem; font-weight: 600; }
+.theme-warning { margin: 0; color: var(--warn); }
 
 /* ---------- Sleep tracking ---------- */
 .sleep-card { border-color: color-mix(in srgb, var(--sleep) 35%, var(--border)); }

@@ -26,7 +26,7 @@ export default function App() {
   const { state } = useApp();
   const [tab, setTab] = useState<Tab>("home");
   const [settings, setSettings] = useState(false);
-  useTheme(state.settings.theme);
+  useTheme(state.settings.theme, state.settings.customTheme);
   useWakeLock(!!state.active && state.settings.keepAwake);
 
   useEffect(() => {
