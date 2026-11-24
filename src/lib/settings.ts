@@ -10,6 +10,7 @@ export const defaultSettings = (): Settings => ({
   keepAwake: true,
   prefillSets: true,
   dashboard: { order: [], hidden: [], months: 3 },
+  sleepTracking: false,
   updatedAt: 0,
 });
 

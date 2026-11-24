@@ -111,6 +111,21 @@ export interface VideoChoice {
   at: number; // when chosen; the latest choice wins when devices sync
 }
 
+/**
+ * One night of sleep tracking. Timestamps are ms since epoch; `date` is the local calendar date of
+ * the wake-up when it was saved (one entry per date), so entries are easy to look up by day.
+ */
+export interface SleepEntry {
+  id: string;
+  date: string; // YYYY-MM-DD, the morning the night ended
+  bedAt: number;
+  wakeAt: number;
+  /** Time in bed (wakeAt - bedAt), in minutes. */
+  minutes: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export type ThemeMode = "system" | "light" | "dark";
 export type DashboardMonths = 1 | 3 | 6 | 12;
 
@@ -134,6 +149,8 @@ export interface Settings {
   /** New sets copy weight and reps from the last time the exercise was done. */
   prefillSets: boolean;
   dashboard: DashboardLayout;
+  /** Optional sleep tracking: the Sleep tab, its dashboard tile and the morning check-in. */
+  sleepTracking: boolean;
   /** When the settings last changed; the latest change wins when devices sync. 0 = never changed. */
   updatedAt: number;
 }
@@ -150,6 +167,10 @@ export interface AppState {
   progression: ProgressionSettings[];
   advice: OverloadAdvice[];
   videoChoices: VideoChoice[];
+  /** Nights in bed, newest first. Kept when sleep tracking is turned off. */
+  sleep: SleepEntry[];
+  /** Mornings (YYYY-MM-DD) whose check-in was skipped, so it isn't shown again. */
+  sleepSkips: string[];
   settings: Settings;
   /** Deletion markers ("workout:<id>", "bw:<date>", ...) → time deleted, so sync doesn't bring deleted items back. */
   deleted: Record<string, number>;

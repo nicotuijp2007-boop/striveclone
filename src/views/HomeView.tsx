@@ -1,10 +1,13 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useApp } from "../context";
 import { arrangeTiles, moveTile, periodDays, periodLabel, toggleHidden } from "../lib/dashboard";
 import type { DashboardLayout, DashboardMonths } from "../types";
 import { WeekChecks } from "../components/ActivityCalendar";
 import { Sparkline } from "../components/Sparkline";
 import { e1rmPoints, formatKg, trendOver, weekReport, type Trend } from "../lib/stats";
+import { SleepCheckIn, MoonIcon } from "../components/SleepForm";
+import { SleepView } from "./SleepView";
+import { averageMinutes, formatDuration, localDate, shouldShowCheckIn } from "../lib/sleep";
 
 const PERIODS: DashboardMonths[] = [1, 3, 6, 12];
 
@@ -32,6 +35,17 @@ export function HomeView({ goTo }: { goTo: (tab: "workout" | "progress" | "routi
     [state.bodyWeight, days]
   );
   const week = useMemo(() => weekReport(state.workouts, state.manualPRs), [state.workouts, state.manualPRs]);
+  const sleepOn = state.settings.sleepTracking;
+  // Sleep has no tab of its own: the dashboard tile opens its details here, on Home.
+  const [sleepOpen, setSleepOpen] = useState(false);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [sleepOpen]);
+  const sleepTrend = useMemo(
+    // Plotted at the wake-up time: a noon timestamp would still be "in the future" this morning.
+    () => trendOver(state.sleep.map((e) => ({ t: e.wakeAt, v: e.minutes })), 30),
+    [state.sleep]
+  );
 
   const tiles = new Map<string, ReactNode>([
     ["week", (
@@ -45,6 +59,11 @@ export function HomeView({ goTo }: { goTo: (tab: "workout" | "progress" | "routi
       <TrendTile title="Body weight" caption={cap(period)} trend={weight} empty="Log your weight on Progress"
         onClick={() => goTo("progress")} lowerIsNeutral editing={editing} />
     )],
+    // Sleep tracking off: the tile is left out entirely (its place in the saved order is kept).
+    ...(sleepOn ? [["sleep", (
+      <SleepTile minutes={state.sleep[0]?.minutes ?? null} avg7={averageMinutes(state.sleep, 7, localDate(Date.now()))}
+        series={sleepTrend.series} onClick={() => setSleepOpen(true)} editing={editing} />
+    )] as [string, ReactNode]] : []),
     ...lifts.map((t): [string, ReactNode] => [t.id, (
       <TrendTile title={t.title} caption={`Est. 1RM · ${period}`} trend={t.trend} goal={t.goal}
         empty="Not enough data yet" onClick={() => goTo("progress")} editing={editing} />
@@ -59,8 +78,12 @@ export function HomeView({ goTo }: { goTo: (tab: "workout" | "progress" | "routi
     goTo("workout");
   };
 
+  if (sleepOn && sleepOpen) return <SleepView onClose={() => setSleepOpen(false)} />;
+
   return (
     <section className="stack">
+      {shouldShowCheckIn(state) && <SleepCheckIn />}
+
       {state.active ? (
         <button className="card resume" onClick={() => goTo("workout")}>
           <span className="muted small">Workout in progress</span>
@@ -202,6 +225,26 @@ function TrendTile({ title, caption, trend, goal, empty, onClick, lowerIsNeutral
       {trend.latest !== null && !enough && <span className="muted small">{empty}</span>}
       <span className="tile-title">{title}</span>
       <span className="tile-caption">{caption}</span>
+    </TileShell>
+  );
+}
+
+function SleepTile({ minutes, avg7, series, onClick, editing }: {
+  minutes: number | null; avg7: number | null; series: { t: number; v: number }[]; onClick: () => void; editing?: boolean;
+}) {
+  return (
+    <TileShell className={`tile tile-sleep ${minutes === null ? "tile-empty" : ""}`} onClick={onClick} editing={editing}>
+      {series.length >= 2 && <Sparkline points={series} />}
+      {minutes !== null ? (
+        <>
+          <span className="tile-value">{formatDuration(minutes)}</span>
+          {avg7 !== null && <span className="muted small">7-day avg {formatDuration(avg7)}</span>}
+        </>
+      ) : (
+        <span className="muted small tile-empty-text"><MoonIcon size={16} /> Tap to log a night</span>
+      )}
+      <span className="tile-title">Time in bed</span>
+      <span className="tile-caption">Latest night</span>
     </TileShell>
   );
 }

@@ -74,6 +74,21 @@ export function SettingsView({ onClose }: { onClose: () => void }) {
           hint={s.prefillSets ? "New sets use the recommended weight (you fill in the reps), or last time's weight and reps." : "New exercises start with an empty set; the advice card still shows the target."} />
       </Group>
 
+      <Group title="Sleep tracking">
+        <Switch label="Track sleep" checked={s.sleepTracking} onChange={(v) => set({ sleepTracking: v })}
+          hint={s.sleepTracking
+            ? "Each morning Home asks how you slept. The Time in bed tile (hide or move it with Edit on Home) opens your history. Turn off any time; your sleep history stays saved."
+            : "Optional. Adds a short morning check-in and a Time in bed tile to your Home dashboard."} />
+        {state.sleep.length > 0 && (
+          <div className="split">
+            <span className="muted small">{state.sleep.length} {state.sleep.length === 1 ? "night" : "nights"} saved</span>
+            <button className="btn ghost sm danger" onClick={() => {
+              if (confirm("Delete all sleep data? This can't be undone.")) dispatch({ type: "clearSleep" });
+            }}>Delete sleep data</button>
+          </div>
+        )}
+      </Group>
+
       <Group title="Backup">
         <p className="muted small">
           Save all your data as a file, or restore it from one. Importing replaces everything currently in the app.
