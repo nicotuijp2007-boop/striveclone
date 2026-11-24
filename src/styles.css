@@ -422,6 +422,7 @@ details[open] > summary .adv-more::after { content: " ▴"; }
 .sleep-item-text span { white-space: nowrap; }
 .sleep-dur { font-weight: 800; color: var(--sleep); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .sleep-empty { align-items: center; }
+.sleep-back { padding-left: 4px; }
 .sleep-empty p { margin: 0; }
 .tile-sleep .spark-area { fill: color-mix(in srgb, var(--sleep) 18%, transparent); }
 .tile-sleep .spark-line { stroke: var(--sleep); }

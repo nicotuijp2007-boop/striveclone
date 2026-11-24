@@ -5,8 +5,8 @@ import { averageMinutes, entryForDate, formatClock, formatDuration, lastNights, 
 
 const dayLabel = (date: string, opts: Intl.DateTimeFormatOptions) => new Date(`${date}T12:00:00`).toLocaleDateString(undefined, opts);
 
-/** Sleep dashboard: last night, averages, the last 7 nights as bars, and the full history. */
-export function SleepView() {
+/** Sleep details, opened from the Home tile: last night, averages, the last 7 nights as bars, and the full history. */
+export function SleepView({ onClose }: { onClose: () => void }) {
   const { state, dispatch } = useApp();
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
@@ -20,8 +20,11 @@ export function SleepView() {
   return (
     <section className="stack sleep-view">
       <div className="section-head">
-        <h2>Sleep</h2>
+        <button className="btn ghost sm sleep-back" onClick={onClose} aria-label="Back to Home">← Home</button>
         {!adding && <button className="btn primary sm" onClick={() => { setAdding(true); setEditing(null); }}>Log a night</button>}
+      </div>
+      <div className="section-head">
+        <h2>Sleep</h2>
       </div>
 
       {adding && (

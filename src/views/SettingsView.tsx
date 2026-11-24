@@ -77,8 +77,8 @@ export function SettingsView({ onClose }: { onClose: () => void }) {
       <Group title="Sleep tracking">
         <Switch label="Track sleep" checked={s.sleepTracking} onChange={(v) => set({ sleepTracking: v })}
           hint={s.sleepTracking
-            ? "Log bedtime and wake-up in the Sleep tab or the morning check-in on Home. Turn off any time; your sleep history stays saved."
-            : "Optional. Adds a Sleep tab, a Home tile and a short morning check-in to log your time in bed."} />
+            ? "Each morning Home asks how you slept. The Time in bed tile (hide or move it with Edit on Home) opens your history. Turn off any time; your sleep history stays saved."
+            : "Optional. Adds a short morning check-in and a Time in bed tile to your Home dashboard."} />
         {state.sleep.length > 0 && (
           <div className="split">
             <span className="muted small">{state.sleep.length} {state.sleep.length === 1 ? "night" : "nights"} saved</span>

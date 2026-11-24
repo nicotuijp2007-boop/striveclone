@@ -8,12 +8,11 @@ import { WorkoutView } from "./views/WorkoutView";
 import { RoutinesView } from "./views/RoutinesView";
 import { HistoryView } from "./views/HistoryView";
 import { HomeView } from "./views/HomeView";
-import { SleepView } from "./views/SleepView";
 
 // Charts are heavy; load them only when the Progress tab opens.
 const ProgressView = lazy(() => import("./views/ProgressView").then((m) => ({ default: m.ProgressView })));
 
-type Tab = "home" | "workout" | "routines" | "history" | "progress" | "sleep";
+type Tab = "home" | "workout" | "routines" | "history" | "progress";
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: "home", label: "Home", icon: "M3 11l9-7 9 7M5 10v10h5v-6h4v6h5V10" },
@@ -21,7 +20,6 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: "routines", label: "Routines", icon: "M5 6h14M5 12h14M5 18h9" },
   { id: "history", label: "History", icon: "M12 7v5l3 2M3 12a9 9 0 1 0 3-6.7M3 4v4h4" },
   { id: "progress", label: "Progress", icon: "M4 19V5M4 19h16M8 15l4-4 3 3 5-6" },
-  { id: "sleep", label: "Sleep", icon: "M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" },
 ];
 
 export default function App() {
@@ -34,13 +32,6 @@ export default function App() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [settings]);
-
-  // Sleep tracking off: no Sleep tab (and leave it if it was open).
-  const sleepOn = state.settings.sleepTracking;
-  const tabs = sleepOn ? TABS : TABS.filter((t) => t.id !== "sleep");
-  useEffect(() => {
-    if (!sleepOn && tab === "sleep") setTab("home");
-  }, [sleepOn, tab]);
 
   const go = (t: Tab) => {
     setSettings(false);
@@ -62,7 +53,6 @@ export default function App() {
         {!settings && tab === "workout" && <WorkoutView goTo={go} />}
         {!settings && tab === "routines" && <RoutinesView onStarted={() => go("workout")} />}
         {!settings && tab === "history" && <HistoryView />}
-        {!settings && tab === "sleep" && sleepOn && <SleepView />}
         {!settings && tab === "progress" && (
           <Suspense fallback={<p className="muted">Loading charts…</p>}>
             <ProgressView />
@@ -71,7 +61,7 @@ export default function App() {
       </main>
       <RestBar />
       <nav className="tabs">
-        {tabs.map((t) => (
+        {TABS.map((t) => (
           <button key={t.id} className={!settings && tab === t.id ? "on" : ""} onClick={() => go(t.id)} aria-current={!settings && tab === t.id ? "page" : undefined}>
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d={t.icon} />
