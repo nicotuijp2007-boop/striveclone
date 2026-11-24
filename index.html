@@ -15,11 +15,19 @@
     <script>
       // Apply the theme chosen in Settings before the page paints, so it doesn't flash the other theme.
       try {
-        var t = JSON.parse(localStorage.getItem("liftlog:v1") || "{}").settings?.theme;
-        if (t === "light" || t === "dark") {
-          document.documentElement.dataset.theme = t;
-          document.querySelector('meta[name="theme-color"]').content = t === "light" ? "#f4f5f7" : "#0f1115";
+        var s = JSON.parse(localStorage.getItem("liftlog:v1") || "{}").settings || {};
+        var t = s.theme, root = document.documentElement, bg;
+        if (["light", "dark", "midnight", "forest", "sand"].indexOf(t) >= 0) root.dataset.theme = t;
+        if (t === "custom" && s.customTheme) {
+          // Only the main colours; the app sets the rest right after it loads.
+          var c = s.customTheme, hex = /^#[0-9a-f]{6}$/i;
+          root.dataset.theme = c.base === "light" ? "light" : "dark";
+          if (hex.test(c.bg)) root.style.setProperty("--bg", (bg = c.bg));
+          if (hex.test(c.surface)) root.style.setProperty("--surface", c.surface);
+          if (hex.test(c.accent)) root.style.setProperty("--accent", c.accent);
         }
+        bg = bg || { light: "#f3f4f6", dark: "#0b0c0f", midnight: "#080d1a", forest: "#0a100c", sand: "#f3ede3" }[root.dataset.theme];
+        if (bg) document.querySelector('meta[name="theme-color"]').content = bg;
       } catch (e) {}
     </script>
   </head>

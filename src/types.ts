@@ -126,7 +126,16 @@ export interface SleepEntry {
   updatedAt: number;
 }
 
-export type ThemeMode = "system" | "light" | "dark";
+export type ThemeMode = "system" | "light" | "dark" | "midnight" | "forest" | "sand" | "custom";
+
+/** A theme the user builds in Settings: a base (its text and status colours) plus their own key colours. */
+export interface CustomTheme {
+  base: "dark" | "light";
+  /** Hex colours, "#rrggbb" in lower case. */
+  accent: string;
+  bg: string;
+  surface: string;
+}
 export type DashboardMonths = 1 | 3 | 6 | 12;
 
 /** Home dashboard layout. Tile ids: "week", "bodyweight", "lift:<exerciseId>". */
@@ -144,6 +153,8 @@ export interface Settings {
   restSound: boolean;
   restVibrate: boolean;
   theme: ThemeMode;
+  /** Used when theme is "custom"; kept when another theme is picked, so it can be picked again. */
+  customTheme: CustomTheme;
   /** Keep the screen on during a workout (Wake Lock API, where supported). */
   keepAwake: boolean;
   /** New sets copy weight and reps from the last time the exercise was done. */
