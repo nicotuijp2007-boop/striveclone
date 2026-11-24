@@ -94,7 +94,7 @@ const deload = (weight: number, step: number): number => {
 const fit = (targets: number[], count: number): number[] =>
   Array.from({ length: Math.max(1, count) }, (_, i) => targets[i] ?? targets[targets.length - 1]);
 
-export type AdviceResult = Omit<OverloadAdvice, "updatedAt" | "adjustedWeight" | "acceptedAt">;
+export type AdviceResult = Omit<OverloadAdvice, "updatedAt">;
 
 /**
  * The decision itself. `sessions` is newest first (at most 3 are used); `plannedSets` is the
@@ -125,12 +125,12 @@ export function analyze(sessions: Session[], settings: ProgressionSettings, plan
   if (last.reps.every((r) => r >= maxReps)) {
     if (plannedSets && n < plannedSets) {
       return result("hold", w, [maxReps], [
-        `All ${n} sets reached ${maxReps} reps, but ${plannedSets} were planned.`,
+        `${n === 1 ? "Your set" : `All ${n} sets`} reached ${maxReps} reps, but ${plannedSets} were planned.`,
         `Do all ${plannedSets} sets at ${kg(w)} first, then the weight goes up.`,
       ]);
     }
     return result("increase", w + increment, [minReps], [
-      `All ${n} working sets reached ${maxReps} reps (${repsText(last.reps)}) at ${kg(w)}, the top of your ${minReps}–${maxReps} range.`,
+      `${n === 1 ? "Your working set" : `All ${n} working sets`} reached ${maxReps} reps (${repsText(last.reps)}) at ${kg(w)}, the top of your ${minReps}–${maxReps} range.`,
       w === 0
         ? `Add ${kg(increment)} (belt or vest) or move to a harder variation, and start again at ${minReps} reps.`
         : `Add ${kg(increment)} and start again at the bottom of the range: ${minReps}+ reps per set.`,
@@ -210,8 +210,7 @@ const sameAdvice = (a: OverloadAdvice, b: AdviceResult) =>
 
 /**
  * Recompute stored advice for some exercises (all when omitted). Unchanged advice keeps its
- * object, so syncing doesn't see a change. A user's adjustment survives as long as the advice
- * is still based on the same workout.
+ * object, so syncing doesn't see a change.
  */
 export function refreshAdvice(state: AppState, exerciseIds?: string[], now = Date.now()): AppState {
   const ids = new Set(
@@ -227,20 +226,11 @@ export function refreshAdvice(state: AppState, exerciseIds?: string[], now = Dat
       continue;
     }
     if (cur && sameAdvice(cur, next)) continue;
-    const keep = cur && cur.basedOnWorkoutId === next.basedOnWorkoutId;
-    byId.set(id, {
-      ...next,
-      ...(keep && cur.adjustedWeight !== undefined && { adjustedWeight: cur.adjustedWeight }),
-      ...(keep && cur.acceptedAt !== undefined && { acceptedAt: cur.acceptedAt }),
-      updatedAt: now,
-    });
+    byId.set(id, { ...next, updatedAt: now });
     changed = true;
   }
   return changed ? { ...state, advice: [...byId.values()] } : state;
 }
-
-/** Weight to use next time: the user's own choice if they adjusted it, otherwise the recommendation. */
-export const targetWeight = (a: OverloadAdvice): number => a.adjustedWeight ?? a.recommendedWeight;
 
 export const STATUS_LABEL: Record<AdviceStatus, string> = {
   increase: "Ready to increase",
@@ -277,7 +267,6 @@ export function shortReason(a: OverloadAdvice, p: ProgressionSettings): string {
 export interface LiveProgress {
   text: string;
   tone: "good" | "info" | "warn";
-  targetHit: boolean;
 }
 
 /** How today's ticked sets compare with last time, so the card reflects what's happening now. */
@@ -286,13 +275,49 @@ export function liveProgress(a: OverloadAdvice, sets: { weight: number; reps: nu
   if (done.length === 0) return null;
   const top = Math.max(...done.map((s) => s.weight));
   const working = done.filter((s) => s.weight === top).map((s) => s.reps);
-  const tw = targetWeight(a);
-  const targetHit = top >= tw && working.length >= a.targetReps.length && a.targetReps.every((t, i) => working[i] >= t);
-  if (top > a.lastWeight) return { text: `+${round2(top - a.lastWeight)} kg vs last time`, tone: "good", targetHit };
-  if (top < a.lastWeight) return { text: "Lighter than last time", tone: "info", targetHit };
+  if (top > a.lastWeight) return { text: `+${round2(top - a.lastWeight)} kg vs last time`, tone: "good" };
+  if (top < a.lastWeight) return { text: "Lighter than last time", tone: "info" };
   const k = Math.min(working.length, a.lastReps.length);
   const diff = sum(working.slice(0, k)) - sum(a.lastReps.slice(0, k));
-  if (diff > 0) return { text: `+${diff} rep${diff === 1 ? "" : "s"} vs last time`, tone: "good", targetHit };
-  if (diff < 0) return { text: `${diff} rep${diff === -1 ? "" : "s"} vs last time`, tone: "warn", targetHit };
-  return { text: "Matching last time", tone: "info", targetHit };
+  if (diff > 0) return { text: `+${diff} rep${diff === 1 ? "" : "s"} vs last time`, tone: "good" };
+  if (diff < 0) return { text: `${diff} rep${diff === -1 ? "" : "s"} vs last time`, tone: "warn" };
+  return { text: "Matching last time", tone: "info" };
+}
+
+type SetLike = { weight: number; reps: number; done: boolean };
+
+/** How a ticked set compares with the same set last time. */
+export type SetResult = "up" | "same" | "down";
+
+export interface LastComparison {
+  /** Per set, in order: up / same / down vs the same set last time; null = not ticked yet or a warm-up. */
+  perSet: (SetResult | null)[];
+  up: number;
+  same: number;
+  down: number;
+}
+
+/**
+ * Compare each ticked set with the same set last time (set 1 with set 1, and so on), so a normal
+ * drop in reps over the sets (10, 9, 8) isn't flagged when it happened last time as well.
+ * More weight is better, less weight is worse; at the same weight, reps decide. A set with no
+ * counterpart last time (an extra set) isn't judged. Ticked sets lighter than last time's
+ * working weight count as warm-ups, unless every ticked set is lighter.
+ */
+export function compareToLast(a: OverloadAdvice, sets: SetLike[]): LastComparison {
+  const done = sets.filter((s) => s.done && s.reps > 0);
+  const allLighter = done.length > 0 && done.every((s) => s.weight < a.lastWeight);
+  let k = 0;
+  const perSet = sets.map((s): SetResult | null => {
+    if (!s.done || s.reps <= 0) return null;
+    if (s.weight < a.lastWeight && !allLighter) return null; // warm-up
+    const prev = a.lastReps[k];
+    k += 1;
+    if (prev === undefined) return null; // no set to compare with
+    if (s.weight > a.lastWeight) return "up";
+    if (s.weight < a.lastWeight) return "down";
+    return s.reps > prev ? "up" : s.reps < prev ? "down" : "same";
+  });
+  const count = (r: SetResult) => perSet.filter((x) => x === r).length;
+  return { perSet, up: count("up"), same: count("same"), down: count("down") };
 }

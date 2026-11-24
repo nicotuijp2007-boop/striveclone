@@ -1,23 +1,26 @@
 import { useState } from "react";
 import { useApp } from "../context";
 import { NumberField } from "./NumberField";
-import { STATUS_LABEL, STATUS_TONE, getProgression, liveProgress, shortReason, targetWeight } from "../lib/overload";
+import { STATUS_LABEL, STATUS_TONE, getProgression, liveProgress, shortReason, type LastComparison } from "../lib/overload";
 import type { SetEntry } from "../types";
 
 const shortDate = (t: number) => new Date(t).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
 const repsText = (reps: number[]) => reps.join(" / ");
-const r2 = (n: number) => Math.round(n * 100) / 100;
 
 /**
  * Progressive overload advice for one exercise in the active workout: previous vs recommended,
- * a one-line reason (full analysis and settings expandable), and accept / adjust actions.
+ * with the reasoning, today's analysis and settings behind Details. The user logs whatever they
+ * choose; `check` compares each ticked set with the same set last time.
  */
-export function OverloadPanel({ exerciseId, sets }: { exerciseId: string; sets: SetEntry[] }) {
+export function OverloadPanel({ exerciseId, sets, check }: { exerciseId: string; sets: SetEntry[]; check: LastComparison | null }) {
   const { state, dispatch } = useApp();
   const advice = state.advice.find((a) => a.exerciseId === exerciseId);
   const prog = getProgression(state, exerciseId);
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(0);
+  // All explanation text lives behind this toggle, so the card shows only numbers and actions.
+  const [open, setOpen] = useState(false);
+  const toggle = (
+    <button className="adv-toggle" aria-expanded={open} onClick={() => setOpen((o) => !o)}>Details</button>
+  );
 
   const settings = (
     <div className="adv-settings">
@@ -46,20 +49,39 @@ export function OverloadPanel({ exerciseId, sets }: { exerciseId: string; sets: 
 
   if (!prog.enabled || !advice) {
     return (
-      <details className="adv adv-empty">
-        <summary>
-          <span className="muted small">{prog.enabled ? "First time logged: advice starts after this workout." : "Progression advice is off."}</span>
-          <span className="adv-more">Settings</span>
-        </summary>
-        {settings}
-      </details>
+      <div className="adv adv-empty">
+        <div className="adv-top">
+          <span className="adv-badge muted-badge"><i aria-hidden="true" />{prog.enabled ? "No advice yet" : "Advice off"}</span>
+          {toggle}
+        </div>
+        {open && (
+          <div className="adv-details">
+            <p className="adv-summary">
+              {prog.enabled ? "Advice starts after you finish this exercise once." : "Turn progression advice on below to get a recommendation."}
+            </p>
+            {settings}
+          </div>
+        )}
+      </div>
     );
   }
 
-  const target = targetWeight(advice);
-  const adjusted = advice.adjustedWeight !== undefined;
-  const accepted = !!advice.acceptedAt && !adjusted;
   const live = liveProgress(advice, sets);
+  // Today's analysis, listed under Details.
+  const today: string[] = [];
+  if (check && check.up + check.same + check.down > 0) {
+    const parts = [check.up && `${check.up} better`, check.same && `${check.same} the same`, check.down && `${check.down} lower`].filter(Boolean);
+    today.push(`Today vs last time, set by set: ${parts.join(", ")}.`);
+    let k = 0;
+    sets.forEach((st, i) => {
+      const r = check.perSet[i];
+      if (r === null) return;
+      const prev = advice.lastReps[k];
+      if (r === "down") today.push(`Set ${i + 1}: ${st.weight} kg × ${st.reps}, last time ${advice.lastWeight} kg × ${prev}.`);
+      k += 1;
+    });
+  }
+  if (live) today.push(`${live.text}.`);
   // Beating last time today outranks a stall or decline in earlier sessions: show that, not the old status.
   const improving = live?.tone === "good" && advice.status !== "increase";
   const tone = improving ? "good" : STATUS_TONE[advice.status];
@@ -67,17 +89,12 @@ export function OverloadPanel({ exerciseId, sets }: { exerciseId: string; sets: 
   const summary = improving && (advice.status === "stagnation" || advice.status === "decline")
     ? `Better than last time: the ${advice.status === "stagnation" ? "plateau" : "downward trend"} is broken.`
     : shortReason(advice, prog);
-  const step = prog.increment > 0 ? prog.increment : 0.5;
 
   return (
     <div className={`adv tone-${tone}`}>
       <div className="adv-top">
         <span className="adv-badge"><i aria-hidden="true" />{label}</span>
-        {live && (
-          <span className={`live-chip tone-${live.targetHit ? "good" : live.tone}`}>
-            {live.targetHit ? "Target hit ✓" : live.text}
-          </span>
-        )}
+        {toggle}
       </div>
 
       <div className="adv-compare">
@@ -89,49 +106,26 @@ export function OverloadPanel({ exerciseId, sets }: { exerciseId: string; sets: 
         </div>
         <span className="adv-arrow" aria-hidden="true">→</span>
         <div className="adv-col">
-          <span className="adv-label">{adjusted ? "Your weight" : "Recommended"}</span>
-          <span className="adv-weight rec">{target} kg</span>
+          <span className="adv-label">Recommended</span>
+          <span className="adv-weight rec">{advice.recommendedWeight} kg</span>
           <span className="adv-sub">Target {repsText(advice.targetReps)}</span>
           <span className="adv-sub faint">Range {prog.minReps}–{prog.maxReps} reps</span>
         </div>
       </div>
 
-      <details className="adv-why">
-        <summary>
-          <span>{summary}</span>
-          <span className="adv-more">Details</span>
-        </summary>
+      {open && (
+        <div className="adv-details">
+        <p className="adv-summary">{summary}</p>
+        {today.length > 0 && (
+          <ul className="adv-reasons adv-today">
+            {today.map((t, i) => <li key={i}>{t}</li>)}
+          </ul>
+        )}
         <ul className="adv-reasons">
           {improving && <li>Status before today: {STATUS_LABEL[advice.status].toLowerCase()}.</li>}
           {advice.reasons.map((r, i) => <li key={i}>{r}</li>)}
-          {adjusted && <li>You chose {advice.adjustedWeight} kg instead of the recommended {advice.recommendedWeight} kg.</li>}
         </ul>
         {settings}
-      </details>
-
-      {editing ? (
-        <div className="adv-actions">
-          <div className="stepper">
-            <button className="btn secondary" aria-label={`Minus ${step} kg`} onClick={() => setDraft((d) => Math.max(0, r2(d - step)))}>−</button>
-            <NumberField label="Your weight for today in kg" value={draft} step={step} onChange={setDraft} />
-            <button className="btn secondary" aria-label={`Plus ${step} kg`} onClick={() => setDraft((d) => r2(d + step))}>+</button>
-          </div>
-          <button className="btn ghost" onClick={() => setEditing(false)}>Cancel</button>
-          <button className="btn primary" onClick={() => { dispatch({ type: "adjustAdvice", exerciseId, weight: draft }); setEditing(false); }}>Save</button>
-        </div>
-      ) : (
-        <div className="adv-actions">
-          {accepted || adjusted ? (
-            <span className="adv-ok grow">✓ Using {adjusted ? "your " : ""}{target} kg</span>
-          ) : (
-            <button className="btn primary grow" onClick={() => dispatch({ type: "acceptAdvice", exerciseId })}>
-              Accept {advice.recommendedWeight} kg
-            </button>
-          )}
-          {adjusted && (
-            <button className="btn ghost" onClick={() => dispatch({ type: "acceptAdvice", exerciseId })}>Use {advice.recommendedWeight} kg</button>
-          )}
-          <button className={`btn ${accepted || adjusted ? "ghost" : "secondary"}`} onClick={() => { setDraft(target); setEditing(true); }}>Adjust</button>
         </div>
       )}
     </div>

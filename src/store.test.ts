@@ -22,8 +22,8 @@ describe("reducer", () => {
     s = reducer(s, { type: "finishWorkout" });
     s = reducer(s, { type: "startWorkout" });
     s = reducer(s, { type: "addExerciseToWorkout", exerciseId: "curl" });
-    // Same weight; reps come from the progression advice (one more than last time).
-    expect(s.active!.exercises[0].sets[0]).toMatchObject({ weight: 30, reps: 9, done: false });
+    // Same weight from the progression advice; reps are left for the user to fill in.
+    expect(s.active!.exercises[0].sets[0]).toMatchObject({ weight: 30, reps: 0, done: false });
   });
 
   it("drops an empty workout on finish", () => {

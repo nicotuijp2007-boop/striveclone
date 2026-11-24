@@ -71,7 +71,7 @@ export function SettingsView({ onClose }: { onClose: () => void }) {
         <Switch label="Keep screen on during a workout" checked={s.keepAwake} onChange={(v) => set({ keepAwake: v })}
           hint={canWakeLock ? undefined : "Not supported in this browser, so this has no effect here."} />
         <Switch label="Fill in sets from last time" checked={s.prefillSets} onChange={(v) => set({ prefillSets: v })}
-          hint={s.prefillSets ? "New sets use the progression advice, or last time's weight and reps." : "New exercises start with an empty set. Accept on the advice card still fills them in."} />
+          hint={s.prefillSets ? "New sets use the recommended weight (you fill in the reps), or last time's weight and reps." : "New exercises start with an empty set; the advice card still shows the target."} />
       </Group>
 
       <Group title="Backup">

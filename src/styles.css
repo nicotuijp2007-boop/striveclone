@@ -92,6 +92,7 @@ main { padding: 4px 16px 96px; }
 .input { width: 100%; min-height: var(--tap); background: var(--surface-2); border: 1px solid transparent; color: var(--text);
   border-radius: var(--radius-sm); padding: 10px 12px; font: inherit; transition: background .15s; }
 .input:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--surface-3); }
+.input::placeholder { color: var(--muted); opacity: .55; font-weight: 600; }
 .input.num { text-align: center; padding: 8px 4px; font-weight: 650; font-variant-numeric: tabular-nums; }
 .input.compact { width: auto; max-width: 55%; min-height: 36px; padding: 6px 10px; font-size: .9rem; }
 .title-input { min-height: 0; font-size: 1.2rem; font-weight: 800; letter-spacing: -.02em; background: transparent; padding: 2px 0; border-radius: 8px; }
@@ -242,6 +243,13 @@ rect.today { stroke: var(--text); stroke-width: 1.5; }
 .set-row.done { background: color-mix(in srgb, var(--accent) 13%, transparent); }
 .set-row.done .input { background: transparent; color: var(--text); }
 .set-row.done .set-num { color: var(--accent); }
+/* Ticked sets vs the same set last time: better = lime (the normal done colour), same = orange, lower = red. */
+.set-row.done.vs-same { background: color-mix(in srgb, var(--warn) 14%, transparent); }
+.set-row.done.vs-same .set-num, .set-row.done.vs-same .input { color: var(--warn); }
+.set-row.done.vs-same .check.on { background: var(--warn); }
+.set-row.done.vs-down { background: color-mix(in srgb, var(--danger) 14%, transparent); }
+.set-row.done.vs-down .set-num, .set-row.done.vs-down .input { color: var(--danger); }
+.set-row.done.vs-down .check.on { background: var(--danger); }
 .set-row.pr { background: color-mix(in srgb, var(--accent) 22%, transparent); }
 .set-num { text-align: center; color: var(--muted); font-weight: 800; font-variant-numeric: tabular-nums; }
 .check { display: grid; place-items: center; height: 46px; border-radius: var(--radius-sm); border: 0; background: var(--surface-3); color: var(--muted); transition: background .15s, color .15s; }
@@ -255,7 +263,8 @@ rect.today { stroke: var(--text); stroke-width: 1.5; }
 .saved-banner { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border-radius: var(--radius);
   background: color-mix(in srgb, var(--accent) 12%, var(--surface)); animation: rise .25s ease-out; }
 .saved-icon { display: grid; place-items: center; width: 32px; height: 32px; flex: none; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-weight: 900; }
-.saved-next { color: var(--accent); margin-top: 2px; }
+.saved-target { color: var(--warn); font-weight: 700; margin-top: 2px; }
+.saved-target.all { color: var(--accent); }
 
 /* ---------- Progressive overload card ---------- */
 .adv { --tone: var(--info); display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: var(--radius-sm);
@@ -264,7 +273,15 @@ rect.today { stroke: var(--text); stroke-width: 1.5; }
 .tone-info { --tone: var(--info); }
 .tone-warn { --tone: var(--warn); }
 .tone-bad { --tone: var(--danger); }
-.adv-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.adv-top { display: flex; align-items: center; gap: 8px; }
+.adv-top .live-chip { white-space: nowrap; }
+.adv-toggle { margin-left: auto; border: 0; background: none; padding: 6px 2px 6px 8px; font-size: .78rem; font-weight: 700; color: var(--muted); }
+.adv-toggle::after { content: " ▾"; }
+.adv-toggle[aria-expanded="true"]::after { content: " ▴"; }
+.adv-toggle:hover { color: var(--text); }
+.adv-badge.muted-badge { --tone: var(--muted); }
+.adv-details { display: flex; flex-direction: column; animation: fade .15s ease-out; }
+.adv-summary { margin: 0; font-size: .88rem; font-weight: 600; }
 .adv-badge { display: inline-flex; align-items: center; gap: 7px; color: var(--tone); font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
 .adv-badge i { width: 8px; height: 8px; border-radius: 50%; background: var(--tone); box-shadow: 0 0 0 3px color-mix(in srgb, var(--tone) 22%, transparent); }
 .live-chip { color: var(--tone); background: color-mix(in srgb, var(--tone) 14%, transparent); border-radius: 999px; padding: 3px 10px; font-size: .78rem; font-weight: 700; animation: fade .2s ease-out; }
@@ -277,20 +294,10 @@ rect.today { stroke: var(--text); stroke-width: 1.5; }
 .adv-sub { font-size: .8rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .adv-sub.faint { font-size: .74rem; opacity: .8; }
 .adv-arrow { color: var(--muted); font-size: 1.1rem; align-self: center; }
-.adv-why summary, .adv-empty summary { list-style: none; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; cursor: pointer; font-size: .85rem; color: var(--muted); }
-.adv-why summary::-webkit-details-marker, .adv-empty summary::-webkit-details-marker { display: none; }
-.adv-more { flex: none; font-size: .78rem; font-weight: 700; color: var(--text); opacity: .7; }
-.adv-more::after { content: " ▾"; }
-details[open] > summary .adv-more::after { content: " ▴"; }
-.adv-reasons { margin: 10px 0 0; padding-left: 18px; font-size: .83rem; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+.adv-reasons.adv-today { color: var(--text); margin-bottom: 4px; }
+.adv-reasons { margin: 6px 0 0; padding-left: 18px; font-size: .83rem; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
 .adv-settings { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--border); padding-top: 10px; margin-top: 10px; }
 .adv-settings .input { background: var(--surface); min-height: 40px; }
-.adv-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.adv-actions .btn { min-height: 42px; }
-.adv-ok { color: var(--accent); font-weight: 700; font-size: .9rem; }
-.stepper { display: grid; grid-template-columns: 42px 90px 42px; gap: 6px; flex: 1; min-width: 190px; }
-.stepper .btn { padding: 0; font-size: 1.2rem; }
-.stepper .input { min-height: 42px; background: var(--surface); }
 .adv-empty { padding: 10px 12px; }
 
 @media (max-width: 380px) {

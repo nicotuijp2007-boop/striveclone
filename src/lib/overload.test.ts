@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { analyze, defaultProgression, recentSessions, type Session } from "./overload";
+import { analyze, compareToLast, defaultProgression, recentSessions, type Session } from "./overload";
 import { initialState, reducer } from "../store";
-import type { AppState, Workout } from "../types";
+import type { AppState, OverloadAdvice, Workout } from "../types";
 
 const settings = { ...defaultProgression("bench"), increment: 2.5 };
 /** Sessions newest first, all at `weight` unless given as [weight, reps]. */
@@ -118,20 +118,24 @@ describe("advice in the app flow", () => {
     expect(s.advice).toEqual([expect.objectContaining({ exerciseId: "bench", status: "increase", recommendedWeight: 62.5 })]);
     s = reducer(s, { type: "startWorkout" });
     s = reducer(s, { type: "addExerciseToWorkout", exerciseId: "bench" });
-    expect(s.active!.exercises[0].sets.map((x) => [x.weight, x.reps])).toEqual([[62.5, 6], [62.5, 6], [62.5, 6]]);
+    expect(s.active!.exercises[0].sets.map((x) => [x.weight, x.reps])).toEqual([[62.5, 0], [62.5, 0], [62.5, 0]]);
   });
 
-  it("keeps an adjusted weight as the new starting point without touching history", () => {
-    let s = doBench(initialState(), 60, [10, 10, 10]);
+  it("never prefills reps when there is advice, so the target check only sees entered reps", () => {
+    let s = doBench(initialState(), 60, [10, 9, 8]);
     s = reducer(s, { type: "startWorkout" });
     s = reducer(s, { type: "addExerciseToWorkout", exerciseId: "bench" });
-    s = reducer(s, { type: "adjustAdvice", exerciseId: "bench", weight: 61 });
-    expect(s.active!.exercises[0].sets.every((x) => x.weight === 61)).toBe(true);
-    expect(s.advice[0].adjustedWeight).toBe(61);
-    expect(s.workouts[0].exercises[0].sets.every((x) => x.weight === 60)).toBe(true);
-    s = reducer(s, { type: "acceptAdvice", exerciseId: "bench" });
-    expect(s.active!.exercises[0].sets.every((x) => x.weight === 62.5)).toBe(true);
-    expect(s.advice[0].adjustedWeight).toBeUndefined();
+    const we = s.active!.exercises[0];
+    s = reducer(s, { type: "updateSet", workoutExerciseId: we.id, setId: we.sets[0].id, patch: { reps: 10, done: true } });
+    s = reducer(s, { type: "addSet", workoutExerciseId: we.id });
+    expect(s.active!.exercises[0].sets.map((x) => x.reps)).toEqual([10, 0, 0, 0]);
+  });
+
+  it("lets the user change weight freely; history keeps what was actually lifted", () => {
+    let s = doBench(initialState(), 60, [10, 10, 10]);
+    s = doBench(s, 61, [8, 8, 7]); // the user chose 61 instead of the recommended 62.5
+    expect(s.workouts[1].exercises[0].sets.every((x) => x.weight === 60)).toBe(true);
+    expect(s.advice[0]).toMatchObject({ lastWeight: 61, recommendedWeight: 61, status: "more_reps" });
   });
 
   it("recomputes advice when the rep range changes", () => {
@@ -143,5 +147,27 @@ describe("advice in the app flow", () => {
   it("is stable: recomputing without changes keeps the same state", () => {
     const s = doBench(initialState(), 60, [10, 9, 8]);
     expect(reducer(s, { type: "mergeRemote", remote: {} }).advice[0]).toBe(s.advice[0]);
+  });
+});
+
+describe("compareToLast", () => {
+  const advice = { lastWeight: 80, lastReps: [10, 9, 8] } as OverloadAdvice;
+  const set = (weight: number, reps: number, done = true) => ({ weight, reps, done });
+
+  it("compares each set with the same set last time, so a normal drop over the sets isn't flagged", () => {
+    // 10 / 9 / 8 again is "the same", not a miss on set 3.
+    expect(compareToLast(advice, [set(80, 10), set(80, 9), set(80, 8)]).perSet).toEqual(["same", "same", "same"]);
+    expect(compareToLast(advice, [set(80, 10), set(80, 10), set(80, 7)]).perSet).toEqual(["same", "up", "down"]);
+  });
+
+  it("counts more weight as better and less weight as lower; open sets aren't judged", () => {
+    expect(compareToLast(advice, [set(82.5, 8), set(80, 9, false)]).perSet).toEqual(["up", null]);
+    expect(compareToLast(advice, [set(75, 12), set(75, 12)]).perSet).toEqual(["down", "down"]);
+  });
+
+  it("skips warm-ups and sets that had no counterpart last time", () => {
+    const c = compareToLast(advice, [set(40, 10), set(80, 11), set(80, 9), set(80, 8), set(80, 6)]);
+    expect(c.perSet).toEqual([null, "up", "same", "same", null]);
+    expect(c).toMatchObject({ up: 1, same: 2, down: 0 });
   });
 });

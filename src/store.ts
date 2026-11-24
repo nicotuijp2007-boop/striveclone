@@ -3,7 +3,7 @@ import { DEFAULT_EXERCISES, DEFAULT_ROUTINES, migrateExercises } from "./lib/exe
 import { uid } from "./lib/id";
 import { defaultSettings, normalizeSettings } from "./lib/settings";
 import { mergeStates, tombstone, untombstone, type SyncedData } from "./sync/merge";
-import { getProgression, refreshAdvice, targetWeight } from "./lib/overload";
+import { getProgression, refreshAdvice } from "./lib/overload";
 
 export const STORAGE_KEY = "liftlog:v1";
 
@@ -71,10 +71,6 @@ export type Action =
   | { type: "updateSettings"; patch: Partial<Omit<Settings, "updatedAt">>; now?: number }
   /** Change an exercise's rep range, increment or on/off; the advice is recomputed. */
   | { type: "setProgression"; exerciseId: string; patch: Partial<Omit<ProgressionSettings, "exerciseId" | "updatedAt">> }
-  /** Use the recommended weight and reps for the not-yet-done sets in the active workout. */
-  | { type: "acceptAdvice"; exerciseId: string }
-  /** Use the user's own weight instead; it becomes the starting point, history is untouched. */
-  | { type: "adjustAdvice"; exerciseId: string; weight: number }
   | { type: "importState"; state: AppState }
   /** Combine data pulled from the cloud into the current state. */
   | { type: "mergeRemote"; remote: Partial<SyncedData> }
@@ -95,23 +91,21 @@ const lastPerformance = (state: AppState, exerciseId: string): SetEntry[] | unde
 const adviceFor = (state: AppState, exerciseId: string) => state.advice.find((a) => a.exerciseId === exerciseId);
 
 /**
- * Point the active workout's open working sets of an exercise at a new weight and target reps.
+ * Reps of 0 mean "not filled in yet". Sets of an exercise with advice start like this, so the
+ * target check only ever judges reps the user actually entered, never prefilled ones.
+ */
+export const BLANK_REPS = 0;
+
+/**
+ * Point the open working sets of an exercise at the recommended weight, with reps left blank.
  * Working sets are the open sets at `fromWeight` (what was prefilled); lighter warm-up sets stay.
  */
-const retarget = (sets: SetEntry[], fromWeight: number, weight: number, reps?: number[]): SetEntry[] => {
+const retarget = (sets: SetEntry[], fromWeight: number, weight: number): SetEntry[] => {
   const open = sets.filter((s) => !s.done);
   const working = open.some((s) => s.weight === fromWeight) ? open.filter((s) => s.weight === fromWeight) : open;
-  return sets.map((s) => {
-    const i = working.indexOf(s);
-    return i < 0 ? s : { ...s, weight, ...(reps && { reps: reps[i] ?? reps[reps.length - 1] }) };
-  });
+  return sets.map((s) => (working.includes(s) ? { ...s, weight, reps: BLANK_REPS } : s));
 };
 
-const retargetSets = (state: AppState, exerciseId: string, fromWeight: number, weight: number, reps?: number[]): AppState =>
-  mapActive(state, (w) => ({
-    ...w,
-    exercises: w.exercises.map((we) => (we.exerciseId === exerciseId ? { ...we, sets: retarget(we.sets, fromWeight, weight, reps) } : we)),
-  }));
 
 const mapActive = (state: AppState, fn: (w: Workout) => Workout): AppState =>
   state.active ? { ...state, active: fn(state.active) } : state;
@@ -151,9 +145,9 @@ export function reducer(state: AppState, action: Action): AppState {
           return {
             id: uid(),
             exerciseId: re.exerciseId,
-            sets: Array.from({ length: Math.max(1, re.sets) }, (_, i) =>
+            sets: Array.from({ length: Math.max(1, re.sets) }, () =>
               advice
-                ? newSet(advice.targetReps[i] ?? advice.targetReps[advice.targetReps.length - 1], targetWeight(advice))
+                ? newSet(BLANK_REPS, advice.recommendedWeight)
                 : newSet(re.reps, re.weight)
             ),
           };
@@ -164,11 +158,11 @@ export function reducer(state: AppState, action: Action): AppState {
     case "renameWorkout":
       return mapActive(state, (w) => ({ ...w, name: action.name }));
     case "addExerciseToWorkout": {
-      // Prefilling off: start empty; Accept on the advice card can still fill in the sets.
+      // Prefilling off: start empty, and the user fills in the sets with the advice card as a guide.
       const prev = state.settings.prefillSets ? lastPerformance(state, action.exerciseId) : undefined;
       const advice = state.settings.prefillSets ? adviceFor(state, action.exerciseId) : undefined;
       let sets = prev ? prev.map((s) => newSet(s.reps, s.weight)) : [newSet(8, 0)];
-      if (advice) sets = retarget(sets, advice.lastWeight, targetWeight(advice), advice.targetReps);
+      if (advice) sets = retarget(sets, advice.lastWeight, advice.recommendedWeight);
       return mapActive(state, (w) => ({
         ...w,
         exercises: [...w.exercises, { id: uid(), exerciseId: action.exerciseId, sets }],
@@ -179,11 +173,15 @@ export function reducer(state: AppState, action: Action): AppState {
         ...w,
         exercises: w.exercises.filter((we) => we.id !== action.workoutExerciseId),
       }));
-    case "addSet":
+    case "addSet": {
+      // With advice the user enters reps themselves, so a new set doesn't copy the last one's reps.
+      const exId = state.active?.exercises.find((we) => we.id === action.workoutExerciseId)?.exerciseId;
+      const blank = !!exId && !!adviceFor(state, exId) && getProgression(state, exId).enabled;
       return mapExercise(state, action.workoutExerciseId, (sets) => {
         const last = sets[sets.length - 1];
-        return [...sets, newSet(last?.reps ?? 8, last?.weight ?? 0)];
+        return [...sets, newSet(blank ? BLANK_REPS : last?.reps ?? 8, last?.weight ?? 0)];
       });
+    }
     case "updateSet":
       return mapExercise(state, action.workoutExerciseId, (sets) =>
         sets.map((s) => (s.id === action.setId ? { ...s, ...action.patch } : s))
@@ -294,20 +292,6 @@ export function reducer(state: AppState, action: Action): AppState {
       if (next.minReps > next.maxReps) next.maxReps = next.minReps;
       const progression = [...state.progression.filter((p) => p.exerciseId !== action.exerciseId), next];
       return refreshAdvice({ ...state, progression }, [action.exerciseId]);
-    }
-    case "acceptAdvice": {
-      const a = adviceFor(state, action.exerciseId);
-      if (!a) return state;
-      const s = retargetSets(state, a.exerciseId, targetWeight(a), a.recommendedWeight, a.targetReps);
-      const { adjustedWeight: _drop, ...rest } = a;
-      return { ...s, advice: s.advice.map((x) => (x === a ? { ...rest, acceptedAt: Date.now(), updatedAt: Date.now() } : x)) };
-    }
-    case "adjustAdvice": {
-      const a = adviceFor(state, action.exerciseId);
-      if (!a || !(action.weight >= 0)) return state;
-      const s = retargetSets(state, a.exerciseId, targetWeight(a), action.weight);
-      const now = Date.now();
-      return { ...s, advice: s.advice.map((x) => (x === a ? { ...a, adjustedWeight: action.weight, acceptedAt: now, updatedAt: now } : x)) };
     }
     case "importState": {
       // Mark everything not in the backup as deleted, so a signed-in sync doesn't merge it back.

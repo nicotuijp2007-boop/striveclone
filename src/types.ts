@@ -94,9 +94,6 @@ export interface OverloadAdvice {
   /** Target reps per working set for the next session. */
   targetReps: number[];
   reasons: string[];
-  /** Weight the user chose instead of the recommendation; used as the new starting point. */
-  adjustedWeight?: number;
-  acceptedAt?: number;
   updatedAt: number;
 }
 

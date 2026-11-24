@@ -6,22 +6,35 @@ import { OverloadPanel } from "../components/OverloadPanel";
 import { FormVideoSheet } from "../components/FormVideoSheet";
 import { bestEst1RM, completedSetCount, durationMinutes, estimate1RM, formatKg, weekStreak, workoutVolume } from "../lib/stats";
 import { formatClock, unlockAudio } from "../lib/audio";
-import type { WorkoutExercise } from "../types";
+import type { AppState, WorkoutExercise } from "../types";
+import { compareToLast, getProgression, liveProgress, type LastComparison } from "../lib/overload";
 
 export function WorkoutView({ goTo }: { goTo: (tab: "routines") => void }) {
   const { state } = useApp();
   // Id of the workout just finished, for the "saved" summary on the start screen.
-  const [savedId, setSavedId] = useState<string | null>(null);
+  const [saved, setSaved] = useState<Saved | null>(null);
   return state.active
-    ? <ActiveWorkout onFinished={setSavedId} />
-    : <StartScreen goTo={goTo} savedId={savedId} onDismiss={() => setSavedId(null)} />;
+    ? <ActiveWorkout onFinished={setSaved} />
+    : <StartScreen goTo={goTo} savedInfo={saved} onDismiss={() => setSaved(null)} />;
 }
 
-function StartScreen({ goTo, savedId, onDismiss }: { goTo: (tab: "routines") => void; savedId: string | null; onDismiss: () => void }) {
+/** The workout just finished, and on how many exercises it beat last time. */
+interface Saved { id: string; better: number; compared: number }
+
+const adviceIn = (state: AppState, we: WorkoutExercise) =>
+  getProgression(state, we.exerciseId).enabled ? state.advice.find((a) => a.exerciseId === we.exerciseId) : undefined;
+
+/** Set-by-set comparison with last time, or null when the exercise has no (enabled) advice. */
+const compareFor = (state: AppState, we: WorkoutExercise): LastComparison | null => {
+  const advice = adviceIn(state, we);
+  return advice ? compareToLast(advice, we.sets) : null;
+};
+
+function StartScreen({ goTo, savedInfo, onDismiss }: { goTo: (tab: "routines") => void; savedInfo: Saved | null; onDismiss: () => void }) {
   const { state, dispatch, exerciseById } = useApp();
   const thisWeek = state.workouts.filter((w) => Date.now() - w.startedAt < 7 * 864e5);
   const streak = weekStreak(state.workouts);
-  const saved = savedId ? state.workouts.find((w) => w.id === savedId) : undefined;
+  const saved = savedInfo ? state.workouts.find((w) => w.id === savedInfo.id) : undefined;
 
   return (
     <section className="stack">
@@ -33,7 +46,12 @@ function StartScreen({ goTo, savedId, onDismiss }: { goTo: (tab: "routines") => 
             <div className="muted small">
               {saved.name} · {durationMinutes(saved)} min · {completedSetCount(saved)} sets · {formatKg(workoutVolume(saved))}
             </div>
-            <div className="small saved-next">Next-time advice updated for {saved.exercises.length} exercise{saved.exercises.length === 1 ? "" : "s"}.</div>
+            {savedInfo!.compared > 0 && (
+              <div className={`small saved-target ${savedInfo!.better === savedInfo!.compared ? "all" : ""}`}>
+                Better than last time on {savedInfo!.better} of {savedInfo!.compared} exercise{savedInfo!.compared === 1 ? "" : "s"}
+              </div>
+            )}
+            <div className="small muted">Next-time advice updated.</div>
           </div>
           <button className="x" aria-label="Dismiss" onClick={onDismiss}>×</button>
         </div>
@@ -78,7 +96,7 @@ function Stat({ label, value, unit }: { label: string; value: string; unit: stri
   );
 }
 
-function ActiveWorkout({ onFinished }: { onFinished: (id: string) => void }) {
+function ActiveWorkout({ onFinished }: { onFinished: (s: Saved) => void }) {
   const { state, dispatch, rest } = useApp();
   const w = state.active!;
   const now = useNow(true, 1000);
@@ -99,9 +117,15 @@ function ActiveWorkout({ onFinished }: { onFinished: (id: string) => void }) {
       if (!confirm("No sets are ticked off, so nothing will be saved. Finish anyway?")) return;
     } else if (open > 0 && !confirm(`${open} set${open === 1 ? " isn't" : "s aren't"} ticked off and won't be saved. Finish anyway?`)) return;
     const id = w.id;
+    // Compare with last time before finishing: finishing replaces the advice with next time's.
+    const live = w.exercises.flatMap((we) => {
+      const advice = adviceIn(state, we);
+      const p = advice && liveProgress(advice, we.sets);
+      return p ? [p] : [];
+    });
     dispatch({ type: "finishWorkout" });
     rest.stop();
-    if (completedSetCount(w) > 0) onFinished(id);
+    if (completedSetCount(w) > 0) onFinished({ id, better: live.filter((p) => p.tone === "good").length, compared: live.length });
   };
 
   const done = completedSetCount(w);
@@ -158,6 +182,7 @@ function ExerciseCard({ we, prSets, onPR, onVideo }: {
   const ex = exerciseById(we.exerciseId);
   const rowRefs = useRef(new Map<string, HTMLDivElement>());
   const doneCount = we.sets.filter((s) => s.done).length;
+  const check = compareFor(state, we);
 
   /** Celebrate when a ticked set beats the best ever on a tracked lift. */
   const checkPR = (setId: string, weight: number, reps: number) => {
@@ -173,8 +198,21 @@ function ExerciseCard({ we, prSets, onPR, onVideo }: {
     }
   };
 
+  const advice = check ? state.advice.find((a) => a.exerciseId === we.exerciseId) : undefined;
+  /** Target reps for each set, shown as a hint in the empty reps field. Warm-ups (lighter sets) get none. */
+  const targetHint = (i: number): string | undefined => {
+    if (!advice || we.sets[i].weight < advice.recommendedWeight) return undefined;
+    const k = we.sets.slice(0, i).filter((x) => x.weight >= advice.recommendedWeight).length;
+    return String(advice.targetReps[k] ?? advice.targetReps[advice.targetReps.length - 1]);
+  };
+
   const toggle = (i: number) => {
     const s = we.sets[i];
+    // A set can only be ticked once its reps are filled in, so the target check uses real numbers.
+    if (!s.done && s.reps <= 0) {
+      rowRefs.current.get(s.id)?.querySelector<HTMLInputElement>('input[aria-label$="reps"]')?.focus();
+      return;
+    }
     dispatch({ type: "updateSet", workoutExerciseId: we.id, setId: s.id, patch: { done: !s.done } });
     if (s.done) return;
     checkPR(s.id, s.weight, s.reps);
@@ -211,17 +249,17 @@ function ExerciseCard({ we, prSets, onPR, onVideo }: {
         </button>
       </header>
 
-      <OverloadPanel exerciseId={we.exerciseId} sets={we.sets} />
+      <OverloadPanel exerciseId={we.exerciseId} sets={we.sets} check={check} />
 
       <div className="set-table">
         <div className="set-row head"><span>Set</span><span>kg</span><span>Reps</span><span aria-hidden="true">✓</span><span /></div>
         {we.sets.map((s, i) => (
           <div key={s.id} ref={(el) => { if (el) rowRefs.current.set(s.id, el); else rowRefs.current.delete(s.id); }}
-            className={`set-row ${s.done ? "done" : ""} ${prSets.has(s.id) && s.done ? "pr" : ""}`}>
+            className={`set-row ${s.done ? "done" : ""} ${check?.perSet[i] ? `vs-${check.perSet[i]}` : ""} ${prSets.has(s.id) && s.done ? "pr" : ""}`}>
             <span className="set-num">{prSets.has(s.id) && s.done ? "🏆" : i + 1}</span>
             <NumberField nav label={`Set ${i + 1} weight`} value={s.weight} step={2.5}
               onChange={(n) => dispatch({ type: "updateSet", workoutExerciseId: we.id, setId: s.id, patch: { weight: n } })} />
-            <NumberField nav label={`Set ${i + 1} reps`} value={s.reps}
+            <NumberField nav blankZero label={`Set ${i + 1} reps`} value={s.reps} placeholder={targetHint(i)}
               onChange={(n) => dispatch({ type: "updateSet", workoutExerciseId: we.id, setId: s.id, patch: { reps: Math.round(n) } })} />
             <button className={`check ${s.done ? "on" : ""}`} aria-label={s.done ? `Mark set ${i + 1} not done` : `Mark set ${i + 1} done`}
               aria-pressed={s.done} onClick={() => toggle(i)}>
