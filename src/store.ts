@@ -4,6 +4,7 @@ import { uid } from "./lib/id";
 import { defaultSettings, normalizeSettings } from "./lib/settings";
 import { mergeStates, tombstone, untombstone, type SyncedData } from "./sync/merge";
 import { getProgression, refreshAdvice, targetWeight } from "./lib/overload";
+import { addSkip, entryForDate, localDate, minutesBetween, sortSleep, validateNight } from "./lib/sleep";
 
 export const STORAGE_KEY = "liftlog:v1";
 
@@ -19,6 +20,8 @@ export const initialState = (): AppState => ({
   progression: [],
   advice: [],
   videoChoices: [],
+  sleep: [],
+  sleepSkips: [],
   deleted: {},
   settings: defaultSettings(),
 });
@@ -75,6 +78,13 @@ export type Action =
   | { type: "acceptAdvice"; exerciseId: string }
   /** Use the user's own weight instead; it becomes the starting point, history is untouched. */
   | { type: "adjustAdvice"; exerciseId: string; weight: number }
+  /** Log a night, or edit one when `id` is given. Ignored when invalid or when that night already has another entry. */
+  | { type: "saveSleep"; id?: string; bedAt: number; wakeAt: number; now?: number }
+  | { type: "deleteSleep"; id: string }
+  /** Delete every sleep entry (sleep tracking itself stays as it is). */
+  | { type: "clearSleep" }
+  /** Hide the morning check-in for this date without logging anything. */
+  | { type: "skipSleepCheckIn"; date: string }
   | { type: "importState"; state: AppState }
   /** Combine data pulled from the cloud into the current state. */
   | { type: "mergeRemote"; remote: Partial<SyncedData> }
@@ -133,6 +143,7 @@ const itemKeys = (s: AppState): string[] => [
   ...s.manualPRs.map((m) => `manualPR:${m.id}`),
   ...s.trackedPRs.map((t) => `tracked:${t.exerciseId}`),
   ...s.bodyWeight.map((b) => `bw:${b.date}`),
+  ...(s.sleep ?? []).map((e) => `sleep:${e.id}`),
 ];
 
 export function reducer(state: AppState, action: Action): AppState {
@@ -309,6 +320,27 @@ export function reducer(state: AppState, action: Action): AppState {
       const now = Date.now();
       return { ...s, advice: s.advice.map((x) => (x === a ? { ...a, adjustedWeight: action.weight, acceptedAt: now, updatedAt: now } : x)) };
     }
+    case "saveSleep": {
+      const now = action.now ?? Date.now();
+      if (validateNight(action.bedAt, action.wakeAt, now)) return state;
+      const date = localDate(action.wakeAt);
+      // One entry per night: a second one for the same date is refused (edit the existing one instead).
+      if (entryForDate(state.sleep, date, action.id)) return state;
+      const existing = action.id ? state.sleep.find((e) => e.id === action.id) : undefined;
+      if (action.id && !existing) return state;
+      const entry = {
+        id: existing?.id ?? uid(), date, bedAt: action.bedAt, wakeAt: action.wakeAt,
+        minutes: minutesBetween(action.bedAt, action.wakeAt),
+        createdAt: existing?.createdAt ?? now, updatedAt: now,
+      };
+      return { ...state, sleep: sortSleep([...state.sleep.filter((e) => e.id !== entry.id), entry]) };
+    }
+    case "deleteSleep":
+      return tombstone({ ...state, sleep: state.sleep.filter((e) => e.id !== action.id) }, `sleep:${action.id}`);
+    case "clearSleep":
+      return state.sleep.reduce((s, e) => tombstone(s, `sleep:${e.id}`), { ...state, sleep: [] as AppState["sleep"] });
+    case "skipSleepCheckIn":
+      return { ...state, sleepSkips: addSkip(state.sleepSkips, action.date) };
     case "importState": {
       // Mark everything not in the backup as deleted, so a signed-in sync doesn't merge it back.
       // The backup's settings count as a fresh change, so they win over other devices' settings.

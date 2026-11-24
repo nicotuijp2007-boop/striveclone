@@ -1,5 +1,6 @@
 import type { AppState, Settings } from "../types";
 import { normalizeSettings } from "../lib/settings";
+import { dedupeByNight } from "../lib/sleep";
 
 /** The part of the app state that is stored in the cloud. The in-progress workout stays on the device. */
 export type SyncedData = Omit<AppState, "active">;
@@ -81,6 +82,11 @@ export function mergeStates(local: AppState, remote: Partial<SyncedData>): AppSt
     progression: newestBy(local.progression, remote.progression, (p) => p.exerciseId),
     advice: newestBy(local.advice, remote.advice, (a) => a.exerciseId),
     videoChoices: latestBy(local.videoChoices, remote.videoChoices ?? [], (c) => c.exerciseId),
+    // Edits win by updatedAt, deletes by marker; then one entry per night.
+    sleep: dedupeByNight(
+      newestBy(local.sleep ?? [], remote.sleep, (e) => e.id).filter((e) => !isDeleted(deleted, `sleep:${e.id}`))
+    ),
+    sleepSkips: [...new Set([...(local.sleepSkips ?? []), ...(remote.sleepSkips ?? [])])].sort().slice(-60),
     settings: latestSettings(local.settings, remote.settings),
     deleted,
   };
